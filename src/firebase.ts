@@ -10,7 +10,9 @@ import firebaseConfig from "../firebase-applet-config.json";
 const app = initializeApp(firebaseConfig);
 
 // Try to initialize using the ID specified in config, or let Firebase use the project's default
-const targetDbId = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== "remixed-firestore-database-id"
+const targetDbId = firebaseConfig.firestoreDatabaseId && 
+  firebaseConfig.firestoreDatabaseId !== "remixed-firestore-database-id" &&
+  firebaseConfig.firestoreDatabaseId !== "(default)"
   ? firebaseConfig.firestoreDatabaseId 
   : undefined;
 
