@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "SyncProject": {
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "assignee": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "title", "assignee", "createdAt"]
+    },
+    "SyncNote": {
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Done"] },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High"] },
+        "dueDate": { "type": "number" },
+        "reminderTime": { "type": "number" },
+        "frequency": { "type": "string" },
+        "lastNotifiedAt": { "type": "number" },
+        "audioData": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["projectId", "userId", "content", "status", "createdAt"]
+    },
+    "UserProfile": {
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "username": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "email", "username", "createdAt"]
+    },
+    "UsernameLookup": {
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" }
+      },
+      "required": ["uid"]
+    }
+  },
+  "firestore": {
+    "/syncProjects/{projectId}": {
+      "schema": { "$ref": "SyncProject" }
+    },
+    "/syncNotes/{noteId}": {
+      "schema": { "$ref": "SyncNote" }
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "UserProfile" }
+    },
+    "/usernames/{username}": {
+      "schema": { "$ref": "UsernameLookup" }
+    }
+  }
+}
