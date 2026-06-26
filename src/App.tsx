@@ -223,6 +223,10 @@ export default function App() {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (error: any) {
+      if (error.code === 'auth/popup-closed-by-user') {
+        // User intentionally closed the popup, don't treat it as a failure
+        return;
+      }
       console.error("Google authentication error", error);
       setAuthError("Google Sign-in failed. Please ensure you are not inside an iframe block or try pop-out window.");
     }

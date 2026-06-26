@@ -31,8 +31,7 @@ service cloud.firestore {
 
     // Rules for projects
     match /syncProjects/{id} {
-      allow get: if isOwner(existing().userId);
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isOwner(resource.data.userId);
       allow create: if isSignedIn() 
         && incoming().userId == request.auth.uid 
         && incoming().title is string 
@@ -48,8 +47,7 @@ service cloud.firestore {
 
     // Rules for notes
     match /syncNotes/{id} {
-      allow get: if isOwner(existing().userId);
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isOwner(resource.data.userId);
       allow create: if isSignedIn() 
         && incoming().userId == request.auth.uid
         && incoming().content is string 
