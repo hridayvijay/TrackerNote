@@ -1,31 +1,29 @@
 import { Request, Response } from 'express';
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { GoogleGenAI } from '@google/genai';
 
-import fs from 'fs';
-import path from 'path';
-
-// Read config
-let projectId = 'demo-project';
-try {
-  const configStr = fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8');
-  const config = JSON.parse(configStr);
-  projectId = config.projectId;
-} catch (e) {
-  console.warn("Could not read firebase-applet-config.json", e);
-}
-
-// Initialize Firebase Admin if not already initialized
 if (!getApps().length) {
-  initializeApp({
-    projectId: projectId,
-  });
+  const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (serviceAccountStr) {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountStr);
+      initializeApp({
+        credential: cert(serviceAccount),
+      });
+    } catch (e) {
+      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON", e);
+    }
+  }
 }
 
 export default async function handler(req: Request, res: Response) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    return res.status(500).json({ error: 'FIREBASE_SERVICE_ACCOUNT_JSON is not configured' });
   }
 
   const { uid, audioBase64, mimeType } = req.body;

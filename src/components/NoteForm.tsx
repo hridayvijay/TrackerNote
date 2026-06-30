@@ -1,6 +1,7 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
 import { SyncNote, NoteStatus, Frequency, NotePriority } from "../types";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { addSyncNote, updateSyncNote } from "../services";
 import { X, Save, Clock, Mic, Square, CircleSlash, Music } from "lucide-react";
 import { format } from "date-fns";
@@ -32,6 +33,20 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+
+  const checkGeminiKey = async (): Promise<boolean> => {
+    if (!auth.currentUser) return false;
+    try {
+      const docRef = doc(db, 'users', auth.currentUser.uid, 'settings', 'integrations');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists() && docSnap.data().geminiApiKey) {
+        return true;
+      }
+    } catch (e) {
+      console.error("Error checking key", e);
+    }
+    return false;
+  };
 
   useEffect(() => {
     if (note) {
@@ -80,11 +95,21 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
   }, []);
 
   const startRecording = async () => {
+    setError("");
+    const hasKey = await checkGeminiKey();
+    if (!hasKey) {
+      setError("No Gemini API key configured. Set it in Account Settings.");
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "audio/webm",
-      });
+      let options;
+      if (typeof MediaRecorder.isTypeSupported === 'function') {
+        if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
+      }
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -148,8 +173,9 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
       };
 
       mediaRecorder.onstop = () => {
+        const actualMimeType = mediaRecorder.mimeType || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
+          type: actualMimeType,
         });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
@@ -176,7 +202,7 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
               body: JSON.stringify({
                 uid: authUser.uid,
                 audioBase64: b64,
-                mimeType: 'audio/webm'
+                mimeType: actualMimeType
               })
             });
             
