@@ -15,9 +15,11 @@ import {
 import { format, isPast, isFuture } from "date-fns";
 import { cn } from "../lib/utils";
 import React, { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 interface ProjectCardProps {
   key?: string | number;
+  index?: number;
   project: SyncProject;
   notes: SyncNote[];
   onEditProject: (project: SyncProject) => void;
@@ -25,11 +27,12 @@ interface ProjectCardProps {
   onAddNote: (projectId: string) => void;
   onEditNote: (note: SyncNote) => void;
   onDeleteNote: (noteId: string) => void;
-  onToggleNoteStatus: (noteId: string, status: NoteStatus) => void;
+  onToggleNoteStatus: (note: SyncNote) => void;
   onDropNote: (noteId: string, toProjectId: string) => void;
 }
 
 export default function ProjectCard({
+  index = 0,
   project,
   notes,
   onEditProject,
@@ -76,7 +79,11 @@ export default function ProjectCard({
   );
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 15, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
       className="glass-panel rounded-2xl overflow-hidden shadow-md flex flex-col transition-all mb-4"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -98,10 +105,38 @@ export default function ProjectCard({
             <h4 className="font-bold text-slate-800 dark:text-slate-100 whitespace-normal leading-tight break-words text-[16px]">
               {project.title}
             </h4>
-            <div className="flex items-center text-xs text-slate-500 font-medium mt-1">
-              <span>{format(new Date(project.createdAt), "MMM d")}</span>
-              <span className="mx-2">•</span>
-              <span>{notes.length} notes</span>
+            <div className="flex flex-wrap items-center text-[10px] text-slate-500 font-medium mt-1.5 gap-2">
+              <span className="flex items-center">
+                <Calendar className="w-3 h-3 mr-1 opacity-70" />
+                {format(new Date(project.createdAt), "MMM d")}
+              </span>
+              
+              {project.dueDate && (
+                <span className="flex items-center text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">
+                  <Clock className="w-3 h-3 mr-1" />
+                  Due {format(new Date(project.dueDate), "MMM d")}
+                </span>
+              )}
+
+              {project.priority && (
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded uppercase tracking-wider font-bold text-[9px]",
+                  project.priority === "High" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                  project.priority === "Medium" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                  "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                )}>
+                  {project.priority}
+                </span>
+              )}
+
+              {project.status && project.status === "Done" && (
+                <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase tracking-wider font-bold text-[9px]">
+                  Done
+                </span>
+              )}
+
+              <span className="opacity-50">•</span>
+              <span className="text-slate-600 dark:text-slate-400">{notes.length} notes</span>
             </div>
           </div>
         </div>
@@ -119,8 +154,7 @@ export default function ProjectCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (confirm("Delete project and all its notes?"))
-                onDeleteProject(project.id);
+              onDeleteProject(project.id);
             }}
             className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-white/50 dark:hover:bg-slate-700/50 transition-colors"
           >
@@ -160,20 +194,17 @@ export default function ProjectCard({
               No notes yet. Drag a note here or add one.
             </p>
           ) : (
-            sortedNotes.map((note) => (
-              <NoteItem
-                key={note.id}
-                note={note}
-                onEdit={() => onEditNote(note)}
-                onDelete={() => onDeleteNote(note.id)}
-                onToggleStatus={() =>
-                  onToggleNoteStatus(
-                    note.id,
-                    note.status === "Pending" ? "Done" : "Pending",
-                  )
-                }
-              />
-            ))
+            <AnimatePresence initial={false}>
+              {sortedNotes.map((note) => (
+                <NoteItem
+                  key={note.id}
+                  note={note}
+                  onEdit={() => onEditNote(note)}
+                  onDelete={() => onDeleteNote(note.id)}
+                  onToggleStatus={() => onToggleNoteStatus(note)}
+                />
+              ))}
+            </AnimatePresence>
           )}
 
           <button
@@ -185,7 +216,7 @@ export default function ProjectCard({
           </button>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -204,13 +235,18 @@ function NoteItem({ note, onEdit, onDelete, onToggleStatus }: any) {
     priorityColors.Medium;
 
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.2 }}
       className={cn(
         "bg-white/80 dark:bg-slate-800/90 backdrop-blur-md rounded-xl p-3 border border-white/50 dark:border-slate-700/50 shadow-sm group relative cursor-grab active:cursor-grabbing",
         isDone ? "opacity-60" : "",
       )}
       draggable
-      onDragStart={(e) => {
+      onDragStart={(e: any) => {
         e.stopPropagation(); // prevent project drag
         e.dataTransfer.setData("noteId", note.id);
       }}
@@ -291,21 +327,25 @@ function NoteItem({ note, onEdit, onDelete, onToggleStatus }: any) {
 
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1">
           <button
-            onClick={onEdit}
-            className="p-1 text-slate-400 hover:text-blue-600 bg-slate-50/50 hover:bg-blue-50 rounded"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={() => {
-              if (confirm("Delete note?")) onDelete();
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
             }}
-            className="p-1 text-slate-400 hover:text-red-600 bg-slate-50/50 hover:bg-red-50 rounded"
+            className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

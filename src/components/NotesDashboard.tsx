@@ -12,8 +12,13 @@ import { SyncProject, SyncNote } from "../types";
 import ProjectForm from "./ProjectForm";
 import NoteForm from "./NoteForm";
 import ProjectCard from "./ProjectCard";
+import ConfirmDeleteModal from "./ConfirmDeleteModal";
+import VoiceNoteCreator, { ParsedNoteData } from "./VoiceNoteCreator";
+import ParsedNoteConfirmation from "./ParsedNoteConfirmation";
+import ReminderSystem from "./ReminderSystem";
 import { Plus, Users, LayoutDashboard, Clock, AlertCircle, Trash2, Wifi, WifiOff } from "lucide-react";
 import { isFuture, format } from "date-fns";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function NotesDashboard({ user }: { user: User }) {
   const [projects, setProjects] = useState<SyncProject[]>([]);
@@ -55,6 +60,12 @@ export default function NotesDashboard({ user }: { user: User }) {
     projectId: string;
     note?: SyncNote | null;
   }>({ open: false, projectId: "" });
+  const [deleteModalProps, setDeleteModalProps] = useState<{
+    open: boolean;
+    itemName: string;
+    onConfirm: () => void;
+  }>({ open: false, itemName: "", onConfirm: () => {} });
+  const [parsedNoteData, setParsedNoteData] = useState<ParsedNoteData | null>(null);
 
   useEffect(() => {
     const unsubP = subscribeToProjects(user.uid, setProjects, (err) =>
@@ -69,55 +80,7 @@ export default function NotesDashboard({ user }: { user: User }) {
     };
   }, [user.uid]);
 
-  // Notifications logic
-  useEffect(() => {
-    if (
-      "Notification" in window &&
-      Notification.permission !== "granted" &&
-      Notification.permission !== "denied"
-    ) {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = Date.now();
-      notes.forEach((note) => {
-        if (
-          note.status === "Pending" &&
-          note.reminderTime &&
-          note.reminderTime <= now &&
-          note.frequency !== "Never"
-        ) {
-          let shouldNotify = false;
-          if (!note.lastNotifiedAt) {
-            shouldNotify = true;
-          } else {
-            const hoursSinceLast =
-              (now - note.lastNotifiedAt) / (1000 * 60 * 60);
-            if (note.frequency === "Daily" && hoursSinceLast >= 24)
-              shouldNotify = true;
-            if (note.frequency === "Weekly" && hoursSinceLast >= 168)
-              shouldNotify = true;
-          }
-
-          if (shouldNotify) {
-            if (
-              "Notification" in window &&
-              Notification.permission === "granted"
-            ) {
-              new Notification("TrackerNote Reminder", { body: note.content });
-            }
-            updateSyncNote(note.id, { lastNotifiedAt: now }).catch(
-              console.error,
-            );
-          }
-        }
-      });
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [notes]);
+  // FCM Web Push initialization is handled in App.tsx
 
   const groupedByAssignee = useMemo(() => {
     const groups: Record<string, SyncProject[]> = {};
@@ -215,11 +178,19 @@ export default function NotesDashboard({ user }: { user: User }) {
   }, [notes]);
 
   const handleDeleteProject = (id: string) => {
-    deleteProject(id);
-    // Cascade delete notes
-    notes
-      .filter((n) => n.projectId === id)
-      .forEach((n) => deleteSyncNote(n.id));
+    const project = projects.find(p => p.id === id);
+    const name = project?.title || "project";
+    setDeleteModalProps({
+      open: true,
+      itemName: `Project "${name}"`,
+      onConfirm: () => {
+        deleteProject(id);
+        // Cascade delete notes
+        notes
+          .filter((n) => n.projectId === id)
+          .forEach((n) => deleteSyncNote(n.id));
+      }
+    });
   };
 
   const handleDropProject = (
@@ -347,12 +318,18 @@ export default function NotesDashboard({ user }: { user: User }) {
           </div>
         ) : (
           <div className="flex h-full space-x-6 px-2 snap-x snap-mandatory items-start">
-            {groupsToRender.map(([assignee, assigneeProjects]) => (
-              <div
+            <AnimatePresence>
+            {groupsToRender.map(([assignee, assigneeProjects], colIndex) => (
+              <motion.div
+                layout
+                initial={{ opacity: 0, x: 30, filter: "blur(8px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)", transition: { duration: 0.2 } }}
+                transition={{ duration: 0.4, delay: colIndex * 0.08, ease: "easeOut" }}
                 key={assignee}
                 className="min-w-[340px] max-w-[340px] shrink-0 snap-center flex flex-col h-full bg-slate-200/30 dark:bg-slate-800/20 backdrop-blur-lg border border-slate-300/40 dark:border-slate-700/50 rounded-3xl p-4 transition-colors hover:bg-slate-200/50 dark:hover:bg-slate-800/40"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => handleDropProject(e, assignee)}
+                onDragOver={(e: any) => e.preventDefault()}
+                onDrop={(e: any) => handleDropProject(e, assignee)}
               >
                 <div className="flex items-center mb-5 px-1">
                   <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-full flex items-center justify-center shadow-md mr-3 shrink-0 text-white font-bold text-sm">
@@ -380,9 +357,11 @@ export default function NotesDashboard({ user }: { user: User }) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 rounded-lg pb-10 space-y-4">
-                  {assigneeProjects.map((proj) => (
+                  <AnimatePresence>
+                  {assigneeProjects.map((proj, projIndex) => (
                     <ProjectCard
                       key={proj.id}
+                      index={projIndex}
                       project={proj}
                       notes={notes.filter((n) => n.projectId === proj.id)}
                       onEditProject={(p) =>
@@ -399,22 +378,84 @@ export default function NotesDashboard({ user }: { user: User }) {
                           note: n,
                         })
                       }
-                      onDeleteNote={deleteSyncNote}
-                      onToggleNoteStatus={(nId, status) =>
-                        updateSyncNote(nId, { status })
-                      }
+                      onDeleteNote={(nId) => {
+                        setDeleteModalProps({
+                          open: true,
+                          itemName: "Note",
+                          onConfirm: () => deleteSyncNote(nId)
+                        });
+                      }}
+                      onToggleNoteStatus={async (note) => {
+                        const { onToggleStatus } = await import("../services");
+                        await onToggleStatus(note);
+                      }}
                       onDropNote={(noteId, toProjectId) =>
                         updateSyncNote(noteId, { projectId: toProjectId })
                       }
                     />
                   ))}
+                  </AnimatePresence>
                 </div>
-              </div>
+              </motion.div>
             ))}
+            </AnimatePresence>
             <div className="w-4 shrink-0 h-1" />
           </div>
         )}
       </div>
+
+      {projectFormProps.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setProjectFormProps({ open: false, project: null })} />
+          <div className="relative w-full max-w-xl">
+            <ProjectForm
+              project={projectFormProps.project}
+              onClose={() => setProjectFormProps({ open: false, project: null })}
+            />
+          </div>
+        </div>
+      )}
+
+      {noteFormProps.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setNoteFormProps({ open: false, projectId: "" })} />
+          <div className="relative w-full max-w-xl">
+            <NoteForm
+              projectId={noteFormProps.projectId}
+              note={noteFormProps.note}
+              onClose={() => setNoteFormProps({ open: false, projectId: "" })}
+            />
+          </div>
+        </div>
+      )}
+
+      <ConfirmDeleteModal
+        isOpen={deleteModalProps.open}
+        itemName={deleteModalProps.itemName}
+        onConfirm={deleteModalProps.onConfirm}
+        onCancel={() => setDeleteModalProps({ ...deleteModalProps, open: false })}
+      />
+      
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+        <VoiceNoteCreator
+          existingStakeholders={Array.from(new Set(projects.map(p => p.assignee).filter((a): a is string => Boolean(a))))}
+          onParsed={(parsedData) => {
+            setParsedNoteData(parsedData);
+          }}
+        />
+      </div>
+
+      <AnimatePresence>
+        {parsedNoteData && (
+          <ParsedNoteConfirmation
+            parsedData={parsedNoteData}
+            existingStakeholders={Array.from(new Set(projects.map(p => p.assignee).filter((a): a is string => Boolean(a))))}
+            existingProjects={projects.map(p => ({ id: p.id, name: p.title, assignee: p.assignee }))}
+            onClose={() => setParsedNoteData(null)}
+          />
+        )}
+      </AnimatePresence>
+      <ReminderSystem notes={notes} />
     </div>
   );
 }

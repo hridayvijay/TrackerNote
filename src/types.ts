@@ -1,5 +1,5 @@
 export type NoteStatus = "Pending" | "Done";
-export type Frequency = "Never" | "Once" | "Daily" | "Weekly";
+export type Frequency = "Never" | "Once" | "Daily" | "Weekly" | "Multiple Times Daily" | "Specific Days" | "Multiple Times Weekly" | string;
 export type NotePriority = "Low" | "Medium" | "High";
 
 export interface SyncProject {
@@ -9,6 +9,9 @@ export interface SyncProject {
   assignee: string;
   createdAt: number;
   updatedAt: number;
+  priority?: NotePriority;
+  status?: NoteStatus;
+  dueDate?: number | null;
 }
 
 export interface SyncNote {
@@ -17,9 +20,13 @@ export interface SyncNote {
   userId: string;
   content: string;
   reminderTime: number | null; // Unix timestamp
+  reminderText?: string;
   dueDate?: number | null;
   priority?: NotePriority;
   frequency: Frequency;
+  timesPerDay?: number;
+  daysOfWeek?: string[];
+  nextReminders?: number[];
   lastNotifiedAt: number | null;
   status: NoteStatus;
   audioData?: string;

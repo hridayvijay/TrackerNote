@@ -5,6 +5,7 @@ import {
   doc,
   getDocFromServer,
 } from "firebase/firestore";
+import { getMessaging, isSupported } from "firebase/messaging";
 import firebaseConfig from "../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
@@ -23,6 +24,15 @@ export const db = targetDbId
   : initializeFirestore(app, firestoreSettings);
 
 export const auth = getAuth(app);
+
+export const getMessagingInstance = async () => {
+  const supported = await isSupported();
+  if (supported) {
+    return getMessaging(app);
+  }
+  return null;
+};
+
 
 enum OperationType {
   CREATE = "create",

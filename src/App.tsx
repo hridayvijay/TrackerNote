@@ -8,8 +8,10 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
 } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth, getMessagingInstance } from "./firebase";
+import { getToken, onMessage } from "firebase/messaging";
 import firebaseConfig from "../firebase-applet-config.json";
 import NotesDashboard from "./components/NotesDashboard";
 import AccountPage from "./components/AccountPage";
@@ -18,6 +20,7 @@ import {
   saveUsername,
   getUserProfile,
   UserProfile,
+  saveFcmToken,
 } from "./services";
 import {
   Briefcase,
@@ -36,6 +39,7 @@ import {
   UserCheck,
   AlertCircle,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -63,6 +67,36 @@ export default function App() {
   const [username, setUsername] = useState("");
   const [authError, setAuthError] = useState("");
   const [submittingAuth, setSubmittingAuth] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [resetError, setResetError] = useState("");
+
+  const handleForgotPassword = async () => {
+    setAuthError("");
+    setResetError("");
+    setResetEmailSent(false);
+
+    if (!email) {
+      setResetError("Please enter your email address first.");
+      return;
+    }
+
+    try {
+      setSubmittingAuth(true);
+      await sendPasswordResetEmail(auth, email);
+      setResetEmailSent(true);
+    } catch (error: any) {
+      console.error("Password reset error", error);
+      if (error.code === 'auth/user-not-found') {
+        setResetError("No user found with this email address.");
+      } else if (error.code === 'auth/invalid-email') {
+        setResetError("Please enter a valid email address.");
+      } else {
+        setResetError("Failed to send reset email. Please try again.");
+      }
+    } finally {
+      setSubmittingAuth(false);
+    }
+  };
 
   // Real-time username verification during registration sign-up
   const [checkingUsername, setCheckingUsername] = useState(false);
@@ -118,6 +152,37 @@ export default function App() {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      const setupFCM = async () => {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            const msg = await getMessagingInstance();
+            if (msg) {
+              const token = await getToken(msg);
+              if (token) {
+                await saveFcmToken(user.uid, token);
+              }
+              onMessage(msg, (payload) => {
+                console.log('Message received. ', payload);
+                const notificationTitle = payload.data?.title || payload.notification?.title || 'Reminder';
+                const notificationOptions = {
+                  body: payload.data?.body || payload.notification?.body || '',
+                  icon: '/vite.svg'
+                };
+                new Notification(notificationTitle, notificationOptions);
+              });
+            }
+          }
+        } catch (error) {
+          console.error("FCM Setup Error:", error);
+        }
+      };
+      setupFCM();
+    }
+  }, [user]);
 
   // Debounced real-time username checker for Sign up form
   useEffect(() => {
@@ -302,7 +367,12 @@ export default function App() {
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-indigo-300/40 dark:bg-indigo-600/15 rounded-full blur-[100px]" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-300/40 dark:bg-cyan-600/15 rounded-full blur-[100px]" />
 
-        <div className="glass-panel max-w-lg w-full rounded-2xl overflow-hidden relative z-10 transition-all duration-300 border border-slate-200/50 dark:border-slate-800/60 shadow-2xl">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="glass-panel max-w-lg w-full rounded-2xl overflow-hidden relative z-10 transition-all duration-300 border border-slate-200/50 dark:border-slate-800/60 shadow-2xl"
+        >
           <div className="p-8 space-y-6">
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="w-14 h-14 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full flex items-center justify-center">
@@ -423,6 +493,28 @@ export default function App() {
               </button>
             </form>
 
+            {!isSignUp && (
+              <div className="text-center mt-3 space-y-2">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs font-medium text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400"
+                >
+                  Forgot Password?
+                </button>
+                {resetEmailSent && (
+                  <div className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-lg">
+                    Password reset email sent! Check your inbox.
+                  </div>
+                )}
+                {resetError && (
+                  <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-500/20 p-2 rounded-lg">
+                    {resetError}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="relative my-6 text-center">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200 dark:border-slate-800" />
@@ -440,7 +532,7 @@ export default function App() {
               Google Provider
             </button>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -450,7 +542,12 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-slate-950 dark:via-purple-950/20 dark:to-cyan-950/30 pointer-events-none" />
-        <div className="glass-panel max-w-md w-full rounded-2xl p-8 relative z-10 border border-slate-200 dark:border-slate-800 shadow-2xl">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="glass-panel max-w-md w-full rounded-2xl p-8 relative z-10 border border-slate-200 dark:border-slate-800 shadow-2xl"
+        >
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <div className="mx-auto w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center text-indigo-500">
@@ -502,7 +599,7 @@ export default function App() {
               </button>
             </form>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }

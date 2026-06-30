@@ -1,5 +1,6 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
 import { SyncNote, NoteStatus, Frequency, NotePriority } from "../types";
+import { auth } from "../firebase";
 import { addSyncNote, updateSyncNote } from "../services";
 import { X, Save, Clock, Mic, Square, CircleSlash, Music } from "lucide-react";
 import { format } from "date-fns";
@@ -27,6 +28,10 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (note) {
@@ -83,6 +88,61 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
+      // Siri Waveform setup
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const analyser = audioCtx.createAnalyser();
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 256;
+      audioContextRef.current = audioCtx;
+      analyserRef.current = analyser;
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const draw = () => {
+        if (!canvasRef.current) return;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        animationFrameRef.current = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+
+        const width = canvas.width;
+        const height = canvas.height;
+        const centerY = height / 2;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const drawWave = (offset: number, scale: number, color: string) => {
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            let x = 0;
+            const slice = width / bufferLength;
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 255.0; // 0 to 1
+                const centerDist = 1 - Math.abs(i - bufferLength / 2) / (bufferLength / 2);
+                const amplitude = (v * height * scale * centerDist) / 2;
+                
+                const y = centerY + Math.sin(i * 0.1 + offset) * amplitude;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                
+                x += slice;
+            }
+            ctx.stroke();
+        };
+
+        const time = Date.now() / 150;
+        drawWave(time, 0.8, "rgba(59,130,246, 0.8)");
+        drawWave(time + 2, 0.6, "rgba(139,92,246, 0.8)");
+        drawWave(time + 4, 0.7, "rgba(236,72,153, 0.8)");
+      };
+      
+      draw();
+
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
@@ -93,7 +153,7 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
         });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
+        reader.onloadend = async () => {
           const base64data = reader.result as string;
           if (base64data.length > 800000) {
             alert(
@@ -102,6 +162,44 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
             setAudioData(null);
           } else {
             setAudioData(base64data);
+          }
+          
+          setLoading(true);
+          try {
+            const authUser = auth.currentUser;
+            if (!authUser) throw new Error("Not authenticated");
+            
+            const b64 = base64data.split(',')[1] || base64data;
+            const res = await fetch('/api/gemini', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                uid: authUser.uid,
+                audioBase64: b64,
+                mimeType: 'audio/webm'
+              })
+            });
+            
+            if (res.ok) {
+              const data = await res.json();
+              if (data) {
+                if (data.noteContent) setContent(prev => prev + (prev.trim() ? "\n\n" : "") + "[AI Extracted] " + data.noteContent);
+                if (data.priority && ["Low", "Medium", "High"].includes(data.priority)) setPriority(data.priority as NotePriority);
+                if (data.status && ["Pending", "Done"].includes(data.status)) setStatus(data.status as NoteStatus);
+                
+                if (data.timesPerDay !== undefined || (data.daysOfWeek && data.daysOfWeek.length > 0)) {
+                    if (data.timesPerDay > 1 || (data.daysOfWeek && data.daysOfWeek.length > 0)) {
+                        setFrequency("Daily");
+                    }
+                }
+              }
+            } else if (res.status === 400) {
+               console.warn("Gemini API key might be missing in account settings");
+            }
+          } catch (e) {
+            console.error("Failed to parse via Gemini", e);
+          } finally {
+            setLoading(false);
           }
         };
         stream.getTracks().forEach((track) => track.stop());
@@ -121,6 +219,10 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
     if (!isRecording) return;
 
     mediaRecorderRef.current?.stop();
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    if (audioContextRef.current?.state !== "closed") {
+      audioContextRef.current?.close().catch(() => {});
+    }
     recognitionRef.current?.stop();
     setIsRecording(false);
 
@@ -212,12 +314,13 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
               autoFocus
             />
             {isRecording && (
-              <div className="absolute inset-x-2 bottom-3 mx-auto max-w-[90%] rounded-xl bg-blue-100/90 dark:bg-blue-900/90 backdrop-blur-xl p-3 border border-white/50 shadow-lg animate-in slide-in-from-bottom-2">
-                <p className="font-semibold text-blue-800 flex items-center mb-1 text-xs uppercase tracking-wider">
+              <div className="absolute inset-x-2 bottom-3 mx-auto max-w-[90%] rounded-xl bg-slate-900/90 backdrop-blur-xl p-3 border border-slate-700 shadow-lg animate-in slide-in-from-bottom-2 flex flex-col items-center">
+                <canvas ref={canvasRef} width="200" height="40" className="w-full max-w-[200px] h-10 mb-2" />
+                <p className="font-semibold text-blue-400 flex items-center mb-1 text-xs uppercase tracking-wider">
                   <span className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-ping" />
                   Listening...
                 </p>
-                <p className="text-blue-900 italic line-clamp-2 text-sm font-medium">
+                <p className="text-slate-300 italic line-clamp-2 text-sm font-medium text-center">
                   "{transcription || "..."}"
                 </p>
               </div>
@@ -299,48 +402,71 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 Frequency
               </label>
-              <select
-                className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-sm font-bold shadow-inner transition-colors"
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value as Frequency)}
-              >
-                <option value="Never">None</option>
-                <option value="Once">Once</option>
-                <option value="Daily">Daily</option>
-                <option value="Weekly">Weekly</option>
-              </select>
+              <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1">
+                {(["Never", "Once", "Daily", "Weekly"] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setFrequency(f)}
+                    className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      frequency === f
+                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    {f === "Never" ? "None" : f}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 Priority
               </label>
-              <select
-                className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-sm font-bold shadow-inner transition-colors"
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as NotePriority)}
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
+              <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1">
+                {(["Low", "Medium", "High"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPriority(p)}
+                    className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      priority === p
+                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
-          <select
-            className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-3 py-1.5 font-bold text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as NoteStatus)}
-          >
-            <option value="Pending">Pending</option>
-            <option value="Done">Done</option>
-          </select>
+          <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1 w-40">
+            {(["Pending", "Done"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatus(s)}
+                className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  status === s
+                    ? s === "Done"
+                      ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-sm"
+                      : "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
 
           <div className="flex items-center space-x-2">
             <button

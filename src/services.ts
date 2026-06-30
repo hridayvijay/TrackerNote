@@ -9,6 +9,7 @@ import {
   orderBy,
   updateDoc,
 } from "firebase/firestore";
+import { addDays, addHours, getDay } from "date-fns";
 import { db, auth, handleFirestoreError } from "./firebase";
 import { SyncProject, SyncNote } from "./types";
 
@@ -58,6 +59,7 @@ export async function addProject(
     createdAt: project.createdAt || now,
     updatedAt: now,
   });
+  return docRef.id;
 }
 
 export async function updateProject(
@@ -163,6 +165,11 @@ export async function checkUsernameAvailable(username: string): Promise<boolean>
 /**
  * Creates user profile in Firestore and locks the username mapping.
  */
+export async function saveFcmToken(uid: string, token: string): Promise<void> {
+  const userRef = doc(db, "users", uid);
+  await setDoc(userRef, { fcmToken: token }, { merge: true });
+}
+
 export async function saveUsername(uid: string, username: string, email: string): Promise<void> {
   const cleanUsername = username.trim();
   const lowercaseUsername = cleanUsername.toLowerCase();
@@ -247,3 +254,105 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   }
 }
 
+export function calculateNextReminders(dueDate: Date, timesPerDay: number): Date[] {
+  const reminders: Date[] = [];
+  const startHour = 8;
+  const endHour = 21;
+  const totalHours = endHour - startHour;
+  
+  if (timesPerDay <= 1) {
+    const d = new Date(dueDate);
+    d.setHours(14, 30, 0, 0);
+    reminders.push(d);
+  } else {
+    const interval = totalHours / (timesPerDay - 1);
+    for (let i = 0; i < timesPerDay; i++) {
+      const d = new Date(dueDate);
+      const hoursToAdd = startHour + (interval * i);
+      const h = Math.floor(hoursToAdd);
+      const m = Math.round((hoursToAdd - h) * 60);
+      d.setHours(h, m, 0, 0);
+      reminders.push(d);
+    }
+  }
+  
+  return reminders;
+}
+
+export async function onToggleStatus(note: SyncNote) {
+  if (!auth.currentUser) throw new Error("Not authenticated");
+  
+  const isCurrentlyPending = note.status === "Pending";
+  if (!isCurrentlyPending) {
+    // If it's Done, toggle to Pending
+    return updateSyncNote(note.id, { status: "Pending" });
+  }
+
+  // It's Pending, we're marking it Done
+  const frequency = note.frequency || "Once";
+  const now = new Date();
+  
+  if (frequency === "Once" || frequency === "Never") {
+    return updateSyncNote(note.id, { status: "Done" });
+  }
+  
+  let newDueDate: Date = note.dueDate ? new Date(note.dueDate) : new Date();
+  let nextReminders: Date[] = [];
+  
+  if (frequency === "Daily") {
+    newDueDate = addDays(newDueDate, 1);
+    nextReminders = calculateNextReminders(newDueDate, note.timesPerDay || 1);
+  } else if (frequency === "Multiple Times Daily") {
+    const timesPerDay = note.timesPerDay || 1;
+    const intervalHours = 24 / timesPerDay;
+    newDueDate = addHours(newDueDate, intervalHours);
+    nextReminders = [newDueDate];
+  } else if (frequency === "Specific Days" || frequency === "Multiple Times Weekly") {
+    const daysMap: Record<string, number> = {
+      "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, "Thu": 4, "Fri": 5, "Sat": 6
+    };
+    
+    if (note.daysOfWeek && note.daysOfWeek.length > 0) {
+      const currentDayNum = getDay(now);
+      const targetDays = note.daysOfWeek.map(d => daysMap[d]).filter(d => d !== undefined).sort((a, b) => a - b);
+      
+      if (targetDays.length > 0) {
+        let nextDayNum = targetDays.find(d => d > currentDayNum);
+        let daysToAdd = 0;
+        
+        if (nextDayNum !== undefined) {
+          daysToAdd = nextDayNum - currentDayNum;
+        } else {
+          nextDayNum = targetDays[0];
+          daysToAdd = 7 - currentDayNum + nextDayNum;
+        }
+        
+        newDueDate = addDays(now, daysToAdd);
+        if (note.dueDate) {
+          const oldDate = new Date(note.dueDate);
+          newDueDate.setHours(oldDate.getHours(), oldDate.getMinutes(), 0, 0);
+        } else {
+          newDueDate.setHours(14, 30, 0, 0);
+        }
+        
+        nextReminders = calculateNextReminders(newDueDate, note.timesPerDay || 1);
+      } else {
+        return updateSyncNote(note.id, { status: "Done" });
+      }
+    } else {
+       return updateSyncNote(note.id, { status: "Done" });
+    }
+  }
+
+  const updates: Partial<Omit<SyncNote, "id" | "createdAt" | "userId">> = {
+    status: "Pending", // Because it was recurring, it resets to Pending
+    dueDate: newDueDate.getTime(),
+  };
+
+  if (nextReminders.length > 0) {
+    updates.reminderTime = nextReminders[0].getTime();
+    updates.nextReminders = nextReminders.map(r => r.getTime());
+  }
+
+  return updateSyncNote(note.id, updates);
+}

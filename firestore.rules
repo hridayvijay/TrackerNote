@@ -3,87 +3,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 1. Global Safety Net: default deny
-    match /{document=**} {
-      allow read, write: if false;
+    match /syncProjects/{docId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    match /syncNotes/{docId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // --- Helper Functions ---
-    function isSignedIn() {
-      return request.auth != null;
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    // Rules for projects
-    match /syncProjects/{id} {
-      allow read: if isOwner(resource.data.userId);
-      allow create: if isSignedIn() 
-        && incoming().userId == request.auth.uid 
-        && incoming().title is string 
-        && incoming().title.size() > 0 
-        && incoming().title.size() <= 200;
-      allow update: if isOwner(existing().userId) 
-        && incoming().userId == request.auth.uid
-        && incoming().title is string 
-        && incoming().title.size() > 0 
-        && incoming().title.size() <= 200;
-      allow delete: if isOwner(existing().userId);
-    }
-
-    // Rules for notes
-    match /syncNotes/{id} {
-      allow read: if isOwner(resource.data.userId);
-      allow create: if isSignedIn() 
-        && incoming().userId == request.auth.uid
-        && incoming().content is string 
-        && incoming().content.size() <= 2000;
-      allow update: if isOwner(existing().userId) 
-        && incoming().userId == request.auth.uid
-        && incoming().content is string 
-        && incoming().content.size() <= 2000;
-      allow delete: if isOwner(existing().userId);
-    }
-
-    // Rules for user profiles
-    match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) 
-        && incoming().userId == request.auth.uid
-        && incoming().username is string
-        && incoming().username.size() >= 3 
-        && incoming().username.size() <= 30;
-      allow update: if isOwner(userId) 
-        && incoming().userId == request.auth.uid
-        && incoming().username is string 
-        && incoming().username.size() >= 3 
-        && incoming().username.size() <= 30;
-      allow delete: if false;
-    }
-
-    // Rules for usernames lookup
+    
     match /usernames/{username} {
-      allow read: if true; // anyone can check if username is available
-      allow create: if isSignedIn() 
-        && incoming().uid == request.auth.uid
-        && username.size() >= 3 
-        && username.size() <= 30;
-      allow delete: if isSignedIn() 
-        && existing().uid == request.auth.uid;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
   }
 }

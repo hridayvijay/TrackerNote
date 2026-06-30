@@ -1,7 +1,7 @@
 import { useState, FormEvent, useEffect } from "react";
-import { SyncProject } from "../types";
+import { SyncProject, NotePriority, NoteStatus } from "../types";
 import { addProject, updateProject } from "../services";
-import { X, Save, Building2, Calendar } from "lucide-react";
+import { X, Save, Building2, Calendar, Clock, BarChart } from "lucide-react";
 import { format } from "date-fns";
 
 interface ProjectFormProps {
@@ -13,6 +13,9 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState("");
   const [createdAtStr, setCreatedAtStr] = useState("");
+  const [dueDateStr, setDueDateStr] = useState("");
+  const [priority, setPriority] = useState<NotePriority>("Medium");
+  const [status, setStatus] = useState<NoteStatus>("Pending");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,8 +23,13 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
     if (project) {
       setTitle(project.title);
       setAssignee(project.assignee);
+      setPriority(project.priority || "Medium");
+      setStatus(project.status || "Pending");
       if (project.createdAt) {
         setCreatedAtStr(format(new Date(project.createdAt), "yyyy-MM-dd"));
+      }
+      if (project.dueDate) {
+        setDueDateStr(format(new Date(project.dueDate), "yyyy-MM-dd"));
       }
     } else {
       setCreatedAtStr(format(new Date(), "yyyy-MM-dd"));
@@ -41,6 +49,8 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
     const startTimestamp = createdAtStr
       ? new Date(createdAtStr).getTime()
       : Date.now();
+      
+    const dueTimestamp = dueDateStr ? new Date(dueDateStr).getTime() : null;
 
     try {
       if (project) {
@@ -48,12 +58,18 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
           title: title.trim(),
           assignee: assignee.trim(),
           createdAt: startTimestamp,
+          dueDate: dueTimestamp,
+          priority,
+          status,
         });
       } else {
         await addProject({
           title: title.trim(),
           assignee: assignee.trim(),
           createdAt: startTimestamp,
+          dueDate: dueTimestamp,
+          priority,
+          status,
         });
       }
       onClose();
@@ -112,17 +128,80 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
               onChange={(e) => setAssignee(e.target.value)}
             />
           </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center">
-              <Calendar className="w-4 h-4 mr-2 opacity-70" />
-              Start / Creation Date
-            </label>
-            <input
-              type="date"
-              className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all font-medium"
-              value={createdAtStr}
-              onChange={(e) => setCreatedAtStr(e.target.value)}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+                <Calendar className="w-3.5 h-3.5 mr-1 opacity-70" />
+                Start / Creation Date
+              </label>
+              <input
+                type="date"
+                className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-sm"
+                value={createdAtStr}
+                onChange={(e) => setCreatedAtStr(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+                <Clock className="w-3.5 h-3.5 mr-1 opacity-70" />
+                Due Date
+              </label>
+              <input
+                type="date"
+                className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-sm"
+                value={dueDateStr}
+                onChange={(e) => setDueDateStr(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+                <BarChart className="w-3.5 h-3.5 mr-1 opacity-70" />
+                Priority
+              </label>
+              <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1">
+                {(["Low", "Medium", "High"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPriority(p)}
+                    className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      priority === p
+                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Status
+              </label>
+              <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1">
+                {(["Pending", "Done"] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setStatus(s)}
+                    className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      status === s
+                        ? s === "Done"
+                          ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-sm"
+                          : "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
