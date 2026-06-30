@@ -181,6 +181,14 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
             });
             
             if (res.ok) {
+              const contentType = res.headers.get("content-type");
+              if (!contentType || !contentType.includes("application/json")) {
+                const text = await res.text();
+                if (text.includes("Action required to load your app")) {
+                  throw new Error("Browser blocked the request. Please open the app in a new tab (top right icon) to use AI extraction.");
+                }
+                throw new Error("Received invalid response from server.");
+              }
               const data = await res.json();
               if (data) {
                 if (data.noteContent) setContent(prev => prev + (prev.trim() ? "\n\n" : "") + "[AI Extracted] " + data.noteContent);

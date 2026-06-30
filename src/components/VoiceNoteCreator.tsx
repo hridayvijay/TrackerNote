@@ -27,10 +27,12 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const [errorType, setErrorType] = useState<"none" | "no-key" | "permission" | "api" | "size">("none");
   const [errorMessage, setErrorMessage] = useState("");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [interimText, setInterimText] = useState("");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   // Siri animation refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -151,6 +153,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     // Reset errors
     setErrorType("none");
     setErrorMessage("");
+    setInterimText("");
 
     const hasKey = await checkGeminiKey();
     if (!hasKey) {
@@ -161,18 +164,60 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      let options;
+      if (typeof MediaRecorder.isTypeSupported === 'function') {
+        if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
+      }
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       setupSiriAnimation(stream);
+
+      // Start SpeechRecognition for live text
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+        
+        let finalTranscript = '';
+        
+        recognition.onresult = (event: any) => {
+          let currentInterim = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            } else {
+              currentInterim += event.results[i][0].transcript;
+            }
+          }
+          const display = (finalTranscript + ' ' + currentInterim).trim();
+          setInterimText(display);
+        };
+        recognition.onerror = (event: any) => {
+          console.error("SpeechRecognition error:", event.error);
+        };
+        // Restart if it stops automatically
+        recognition.onend = () => {
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording' && recognitionRef.current) {
+             try { recognition.start(); } catch(e){}
+          }
+        };
+        
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const actualMimeType = mediaRecorder.mimeType || "audio/webm";
+        const audioBlob = new Blob(audioChunksRef.current, { type: actualMimeType });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = async () => {
@@ -183,7 +228,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
             setIsParsing(false);
             return;
           }
-          await processAudio(base64data);
+          await processAudio(base64data, actualMimeType);
         };
         stream.getTracks().forEach((track) => track.stop());
       };
@@ -191,10 +236,10 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       mediaRecorder.start(100);
       setIsRecording(true);
       startTimer();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Recording error:", err);
       setErrorType("permission");
-      setErrorMessage("Microphone access denied.");
+      setErrorMessage(err.message || "Microphone access denied.");
     }
   };
 
@@ -205,9 +250,13 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     stopTimer();
     mediaRecorderRef.current?.stop();
     stopSiriAnimation();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
   };
 
-  const processAudio = async (base64data: string) => {
+  const processAudio = async (base64data: string, mimeType: string = 'audio/webm') => {
     try {
       const authUser = auth.currentUser;
       if (!authUser) throw new Error("Not authenticated");
@@ -219,7 +268,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         body: JSON.stringify({
           uid: authUser.uid,
           audioBase64: b64,
-          mimeType: 'audio/webm'
+          mimeType: mimeType
         })
       });
 
@@ -232,6 +281,15 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
           setErrorMessage("Failed to parse via Gemini.");
         }
         return;
+      }
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        if (text.includes("Action required to load your app")) {
+          throw new Error("Browser blocked the request. Please open the app in a new tab (top right icon) to use voice notes.");
+        }
+        throw new Error("Received invalid response from server.");
       }
 
       const data = await res.json();
@@ -334,6 +392,13 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
                 </div>
                 
                 <canvas ref={canvasRef} width="220" height="60" className="w-full h-14" />
+                {interimText && (
+                  <div className="mt-4 px-4 w-full">
+                    <p className="text-sm text-slate-300 italic text-center w-full max-h-16 overflow-y-auto leading-relaxed">
+                      "{interimText}"
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
