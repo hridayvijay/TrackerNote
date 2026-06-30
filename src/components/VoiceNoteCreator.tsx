@@ -163,19 +163,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      let options;
-      if (typeof MediaRecorder.isTypeSupported === 'function') {
-        if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
-        else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
-      }
-      const mediaRecorder = new MediaRecorder(stream, options);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      setupSiriAnimation(stream);
-
-      // Start SpeechRecognition for live text
+      // Start SpeechRecognition synchronously before await to satisfy browser user-gesture requirements
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
@@ -200,16 +188,29 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         recognition.onerror = (event: any) => {
           console.error("SpeechRecognition error:", event.error);
         };
-        // Restart if it stops automatically
         recognition.onend = () => {
           if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording' && recognitionRef.current) {
-             try { recognition.start(); } catch(e){}
+             try { recognitionRef.current.start(); } catch(e){}
           }
         };
         
         recognition.start();
         recognitionRef.current = recognition;
+      } else {
+        setInterimText("Live transcription is not supported in this browser. Keep speaking, the audio will still be parsed!");
       }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      let options;
+      if (typeof MediaRecorder.isTypeSupported === 'function') {
+        if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
+      }
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      setupSiriAnimation(stream);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
@@ -407,10 +408,19 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
             {isParsing && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="absolute bottom-full mb-6 flex flex-col items-center bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl w-[200px]"
+                className="absolute bottom-full mb-6 flex flex-col items-center bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl w-[260px]"
               >
-                <Loader2 className="w-6 h-6 text-indigo-500 animate-spin mb-3" />
-                <span className="text-xs text-slate-300 font-medium tracking-wide">Parsing your note...</span>
+                <div className="flex items-center space-x-2 mb-3">
+                  <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+                  <span className="text-xs text-slate-300 font-medium tracking-wide">Parsing your note...</span>
+                </div>
+                {interimText && (
+                  <div className="px-2 w-full">
+                    <p className="text-sm text-slate-400 italic text-center w-full max-h-16 overflow-y-auto leading-relaxed">
+                      "{interimText}"
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

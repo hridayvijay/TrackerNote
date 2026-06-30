@@ -45,7 +45,14 @@ export default async function handler(req: Request, res: Response) {
 
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
-    const systemInstruction = "You are a task parser. The user will speak a task description. Extract and return ONLY a valid JSON object with these exact fields: stakeholder (the main person responsible — strip all honorifics like Sir, Maam, Ma'am, Mr, Mrs, Dr, Miss and normalize to Title Case), project (the topic or work item), noteContent (full context of what needs doing, written as a clear task statement), reminderText (short action phrase max 6 words starting with a verb), timesPerDay (number, how many reminders per day, default 1 if not mentioned), daysOfWeek (array of day name strings if specific days mentioned, empty array means every day), priority (High Medium or Low inferred from urgency language), status (always the string Pending). Return nothing except the raw JSON object. No markdown. No explanation.";
+    const now = new Date();
+    // Server is in UTC. Convert to IST (UTC+5:30)
+    const istTime = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+    const dayOfWeek = istTime.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+    const formattedDate = istTime.toISOString().split('T')[0];
+    const todayContext = `Today is ${dayOfWeek}, ${formattedDate}.`;
+
+    const systemInstruction = `${todayContext} You are a task parser. The user will speak a task description. Extract and return ONLY a valid JSON object with these exact fields: stakeholder (the main person responsible — strip all honorifics like Sir, Maam, Ma'am, Mr, Mrs, Dr, Miss and normalize to Title Case), project (the topic or work item), noteContent (full context of what needs doing, written as a clear task statement), reminderText (short action phrase max 6 words starting with a verb), timesPerDay (number, how many reminders per day, default 1 if not mentioned), daysOfWeek (array of day name strings if specific days mentioned, empty array means every day), dueDate (optional ISO 8601 datetime string), priority (High Medium or Low inferred from urgency language), status (always the string Pending). You will be told today's exact date and day of the week as system context, separate from anything the user said. The user will never mention today's date themselves. When the user mentions any relative date or time reference, resolve it into an actual ISO 8601 datetime using the provided today's-date as the reference point. Populate the dueDate field with the resolved ISO datetime. If multiple days are mentioned for a recurring task, populate daysOfWeek with the actual day names resolved from context, not relative phrases. Never return a relative phrase like 'next week' as a literal string in the JSON — always resolve it to a real date. Return nothing except the raw JSON object. No markdown. No explanation.`;
 
     const contents = [
       {
