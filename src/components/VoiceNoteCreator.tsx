@@ -4,6 +4,7 @@ import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "motion/react";
 import VoiceOrb from "./VoiceOrb";
+import KineticTranscription from "./KineticTranscription";
 
 export interface ParsedNoteData {
   stakeholder: string;
@@ -329,15 +330,17 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       {errorType === "none" && (
         <div className="relative flex flex-col items-center">
           
+          <KineticTranscription transcript={interimText} isRecording={isRecording} />
+
           <AnimatePresence>
             {isRecording && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                className="absolute bottom-full mb-6 flex flex-col items-center bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl w-[260px]"
+                className="absolute bottom-full mb-[5.5rem] flex flex-col items-center bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl w-[260px]"
               >
-                <div className="flex items-center justify-between w-full mb-2">
+                <div className="flex items-center justify-between w-full">
                   <div className="flex items-center space-x-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
                     <span className="text-xs font-semibold tracking-wider text-slate-300 uppercase">Recording</span>
@@ -346,14 +349,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
                     {formatTime(recordingSeconds)}
                   </span>
                 </div>
-                
-                {interimText && (
-                  <div className="mt-4 px-4 w-full">
-                    <p className="text-sm text-slate-300 italic text-center w-full max-h-16 overflow-y-auto leading-relaxed">
-                      "{interimText}"
-                    </p>
-                  </div>
-                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -364,17 +359,10 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                 className="absolute bottom-full mb-6 flex flex-col items-center bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl w-[260px]"
               >
-                <div className="flex items-center space-x-2 mb-3">
+                <div className="flex items-center space-x-2">
                   <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
                   <span className="text-xs text-slate-300 font-medium tracking-wide">Parsing your note...</span>
                 </div>
-                {interimText && (
-                  <div className="px-2 w-full">
-                    <p className="text-sm text-slate-400 italic text-center w-full max-h-16 overflow-y-auto leading-relaxed">
-                      "{interimText}"
-                    </p>
-                  </div>
-                )}
               </motion.div>
             )}
           </AnimatePresence>
