@@ -16,12 +16,14 @@ import { format, isPast, isFuture } from "date-fns";
 import { cn } from "../lib/utils";
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { substituteYou } from "../utils/youReference";
 
 interface ProjectCardProps {
   key?: string | number;
   index?: number;
   project: SyncProject;
   notes: SyncNote[];
+  currentUserDisplayName: string;
   onEditProject: (project: SyncProject) => void;
   onDeleteProject: (projectId: string) => void;
   onAddNote: (projectId: string) => void;
@@ -35,6 +37,7 @@ export default function ProjectCard({
   index = 0,
   project,
   notes,
+  currentUserDisplayName,
   onEditProject,
   onDeleteProject,
   onAddNote,
@@ -199,6 +202,7 @@ export default function ProjectCard({
                 <NoteItem
                   key={note.id}
                   note={note}
+                  currentUserDisplayName={currentUserDisplayName}
                   onEdit={() => onEditNote(note)}
                   onDelete={() => onDeleteNote(note.id)}
                   onToggleStatus={() => onToggleNoteStatus(note)}
@@ -220,7 +224,7 @@ export default function ProjectCard({
   );
 }
 
-function NoteItem({ note, onEdit, onDelete, onToggleStatus }: any) {
+function NoteItem({ note, currentUserDisplayName, onEdit, onDelete, onToggleStatus }: any) {
   const isDone = note.status === "Done";
 
   const priorityColors = {
@@ -233,6 +237,8 @@ function NoteItem({ note, onEdit, onDelete, onToggleStatus }: any) {
   const priorityClass =
     priorityColors[note.priority as keyof typeof priorityColors] ||
     priorityColors.Medium;
+
+  const displayContent = substituteYou(note.content, currentUserDisplayName);
 
   return (
     <motion.div
@@ -275,7 +281,7 @@ function NoteItem({ note, onEdit, onDelete, onToggleStatus }: any) {
                 : "text-slate-800 dark:text-slate-100",
             )}
           >
-            {note.content}
+            {displayContent}
           </p>
 
           <div className="flex flex-wrap items-center gap-2 mt-2">

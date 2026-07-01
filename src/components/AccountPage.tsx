@@ -209,7 +209,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
       await linkWithCredential(user, credential);
 
       // 3. Create profile in Firestore users & usernames lookup
-      await saveUsername(user.uid, linkUsername, linkEmail);
+      await saveUsername(user.uid, linkUsername, linkEmail, linkUsername);
 
       // 4. Update display name in Auth
       await updateProfile(user, { displayName: linkUsername });

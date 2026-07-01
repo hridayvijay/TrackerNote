@@ -32,9 +32,51 @@ export default function ParsedNoteConfirmation({
   const [daysOfWeek, setDaysOfWeek] = useState<string[]>(parsedData.daysOfWeek || []);
   const [priority, setPriority] = useState<NotePriority>((parsedData.priority as NotePriority) || "Medium");
 
+  const formatDatetimeLocal = (isoString?: string | null) => {
+    if (!isoString) return "";
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return "";
+      return d.toISOString().slice(0, 16);
+    } catch {
+      return "";
+    }
+  };
+
+  const defaultReminder = (isoString?: string | null) => {
+    if (!isoString) return "";
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return "";
+      d.setMinutes(d.getMinutes() - 30);
+      return d.toISOString().slice(0, 16);
+    } catch {
+      return "";
+    }
+  };
+
+  const [dueDateStr, setDueDateStr] = useState(formatDatetimeLocal(parsedData.dueDate));
+  const [reminderStr, setReminderStr] = useState(defaultReminder(parsedData.dueDate));
+
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  let calculatedFrequency: Frequency = "Once";
+  if (timesPerDay > 1 || daysOfWeek.length > 0) {
+    calculatedFrequency = "Daily";
+  }
+
+  let summaryBanner = `Reminding you to ${reminderText || "follow up"} with ${stakeholder} about ${project}`;
+  if (dueDateStr) {
+    try {
+      const summaryDate = new Date(dueDateStr).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" });
+      summaryBanner += `, due ${summaryDate}`;
+    } catch (e) {}
+  }
+  if (calculatedFrequency !== "Once") {
+    summaryBanner += `, repeating ${calculatedFrequency.toLowerCase()}`;
+  }
 
   useEffect(() => {
     const raw = parsedData.stakeholder || "Me";
@@ -81,21 +123,20 @@ export default function ParsedNoteConfirmation({
         } as any);
       }
 
-      let frequency: Frequency = "Once";
-      if (timesPerDay > 1 || daysOfWeek.length > 0) {
-        frequency = "Daily";
-      }
+      const dueTimestamp = dueDateStr ? new Date(dueDateStr).toISOString() : null;
+      const remTimestamp = reminderStr ? new Date(reminderStr).toISOString() : null;
 
       await addSyncNote({
         projectId: pId,
         content: `[AI Extracted] ${noteContent}`,
         reminderText: reminderText,
         priority: priority,
-        frequency: frequency,
+        frequency: calculatedFrequency,
         timesPerDay: timesPerDay,
         daysOfWeek: daysOfWeek,
         status: "Pending",
-        reminderTime: null,
+        reminderTime: remTimestamp,
+        dueDate: dueTimestamp,
       } as any);
 
       setSuccess(true);
@@ -133,6 +174,10 @@ export default function ParsedNoteConfirmation({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        <div className="mb-6 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-medium text-sm leading-relaxed">
+          {summaryBanner}
         </div>
 
         {error && (
@@ -209,6 +254,31 @@ export default function ParsedNoteConfirmation({
               rows={3}
               className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none scrollbar-thin"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Due Date
+              </label>
+              <input
+                type="datetime-local"
+                value={dueDateStr}
+                onChange={(e) => setDueDateStr(e.target.value)}
+                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all [color-scheme:dark]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                Reminder Date
+              </label>
+              <input
+                type="datetime-local"
+                value={reminderStr}
+                onChange={(e) => setReminderStr(e.target.value)}
+                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all [color-scheme:dark]"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

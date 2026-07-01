@@ -3,6 +3,7 @@ import { Mic, Square, Loader2, AlertCircle } from "lucide-react";
 import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "motion/react";
+import VoiceOrb from "./VoiceOrb";
 
 export interface ParsedNoteData {
   stakeholder: string;
@@ -12,6 +13,7 @@ export interface ParsedNoteData {
   timesPerDay: number;
   daysOfWeek: string[];
   priority: string;
+  dueDate?: string;
   status: string;
 }
 
@@ -28,22 +30,16 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const [errorMessage, setErrorMessage] = useState("");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [interimText, setInterimText] = useState("");
+  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  // Siri animation refs
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-
   useEffect(() => {
     return () => {
       stopTimer();
-      stopSiriAnimation();
     };
   }, []);
 
@@ -73,69 +69,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-  };
-
-  const stopSiriAnimation = () => {
-    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    if (audioContextRef.current?.state !== "closed") {
-      audioContextRef.current?.close().catch(() => {});
-    }
-  };
-
-  const setupSiriAnimation = (stream: MediaStream) => {
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const analyser = audioCtx.createAnalyser();
-    const source = audioCtx.createMediaStreamSource(stream);
-    source.connect(analyser);
-    analyser.fftSize = 256;
-    audioContextRef.current = audioCtx;
-    analyserRef.current = analyser;
-
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    const draw = () => {
-      if (!canvasRef.current) return;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      animationFrameRef.current = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(dataArray);
-
-      const width = canvas.width;
-      const height = canvas.height;
-      const centerY = height / 2;
-
-      ctx.clearRect(0, 0, width, height);
-
-      const drawWave = (offset: number, scale: number, color: string) => {
-          ctx.beginPath();
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          let x = 0;
-          const slice = width / bufferLength;
-          for (let i = 0; i < bufferLength; i++) {
-              const v = dataArray[i] / 255.0; // 0 to 1
-              const centerDist = 1 - Math.abs(i - bufferLength / 2) / (bufferLength / 2);
-              const amplitude = (v * height * scale * centerDist) / 2;
-              
-              const y = centerY + Math.sin(i * 0.1 + offset) * amplitude;
-              if (i === 0) ctx.moveTo(x, y);
-              else ctx.lineTo(x, y);
-              
-              x += slice;
-          }
-          ctx.stroke();
-      };
-
-      const time = Date.now() / 150;
-      drawWave(time, 0.8, "rgba(59,130,246, 0.8)");
-      drawWave(time + 2, 0.6, "rgba(139,92,246, 0.8)");
-      drawWave(time + 4, 0.7, "rgba(236,72,153, 0.8)");
-    };
-    
-    draw();
   };
 
   const formatTime = (seconds: number) => {
@@ -201,16 +134,16 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      let options;
+      let options: any = { audioBitsPerSecond: 32000 };
       if (typeof MediaRecorder.isTypeSupported === 'function') {
-        if (MediaRecorder.isTypeSupported('audio/webm')) options = { mimeType: 'audio/webm' };
-        else if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
+        if (MediaRecorder.isTypeSupported('audio/webm')) options.mimeType = 'audio/webm';
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) options.mimeType = 'audio/mp4';
       }
       const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      setupSiriAnimation(stream);
+      setAudioStream(stream);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
@@ -219,6 +152,16 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       mediaRecorder.onstop = () => {
         const actualMimeType = mediaRecorder.mimeType || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, { type: actualMimeType });
+        
+        if (audioBlob.size > 3 * 1024 * 1024) {
+          setErrorType("size");
+          setErrorMessage("Recording is too long — please keep voice notes under 60 seconds");
+          setIsParsing(false);
+          stream.getTracks().forEach((track) => track.stop());
+          setAudioStream(null);
+          return;
+        }
+
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = async () => {
@@ -232,6 +175,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
           await processAudio(base64data, actualMimeType);
         };
         stream.getTracks().forEach((track) => track.stop());
+        setAudioStream(null);
       };
 
       mediaRecorder.start(100);
@@ -250,7 +194,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     setIsParsing(true);
     stopTimer();
     mediaRecorderRef.current?.stop();
-    stopSiriAnimation();
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
@@ -262,6 +205,17 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       const authUser = auth.currentUser;
       if (!authUser) throw new Error("Not authenticated");
 
+      let displayName = "";
+      try {
+        const userDocRef = doc(db, 'users', authUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists() && userDocSnap.data().displayName) {
+          displayName = userDocSnap.data().displayName;
+        }
+      } catch(e) {
+        console.error("Error fetching displayName", e);
+      }
+
       const b64 = base64data.split(',')[1] || base64data;
       const res = await fetch('/api/gemini', {
         method: 'POST',
@@ -269,7 +223,8 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         body: JSON.stringify({
           uid: authUser.uid,
           audioBase64: b64,
-          mimeType: mimeType
+          mimeType: mimeType,
+          displayName: displayName
         })
       });
 
@@ -392,7 +347,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
                   </span>
                 </div>
                 
-                <canvas ref={canvasRef} width="220" height="60" className="w-full h-14" />
                 {interimText && (
                   <div className="mt-4 px-4 w-full">
                     <p className="text-sm text-slate-300 italic text-center w-full max-h-16 overflow-y-auto leading-relaxed">
@@ -426,69 +380,11 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
           </AnimatePresence>
 
           <div className="relative">
-            {/* Pulsing ring when recording */}
-            <AnimatePresence>
-              {isRecording && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 1 }}
-                  animate={{ opacity: [0.5, 0], scale: [1, 1.8] }}
-                  transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
-                  className="absolute inset-0 rounded-full bg-red-500 z-0 pointer-events-none"
-                />
-              )}
-            </AnimatePresence>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <VoiceOrb 
+              state={isParsing ? "parsing" : isRecording ? "recording" : "idle"}
               onClick={handleMicClick}
-              disabled={isParsing}
-              className={`relative z-10 flex items-center justify-center w-20 h-20 rounded-full shadow-2xl transition-all duration-300 overflow-hidden group ${
-                isRecording 
-                  ? "shadow-red-500/30 ring-4 ring-red-500/20" 
-                  : isParsing
-                  ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
-                  : "shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.6)]"
-              }`}
-            >
-              {!isParsing && (
-                <>
-                  {/* Deep translucent background */}
-                  <div className="absolute inset-0 bg-[#0f172a]/40 backdrop-blur-md" />
-                  
-                  {/* Swirling animated gradients (Cyan, Magenta, Blue) */}
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
-                    className="absolute -inset-[50%] opacity-90 mix-blend-screen"
-                    style={{
-                      background: 'conic-gradient(from 0deg, transparent 0%, rgba(6, 182, 212, 0.8) 25%, transparent 50%, rgba(236, 72, 153, 0.8) 75%, transparent 100%)',
-                      filter: 'blur(15px)'
-                    }}
-                  />
-                  <motion.div
-                    animate={{ rotate: -360 }}
-                    transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
-                    className="absolute -inset-[50%] opacity-80 mix-blend-screen"
-                    style={{
-                      background: 'conic-gradient(from 90deg, transparent 0%, rgba(59, 130, 246, 0.9) 30%, transparent 60%, rgba(6, 182, 212, 0.6) 90%, transparent 100%)',
-                      filter: 'blur(15px)'
-                    }}
-                  />
-
-                  {/* Inner glow and glassy border */}
-                  <div className="absolute inset-0 rounded-full border-[2px] border-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.4)] pointer-events-none" />
-                  
-                  {/* Specular highlights for 3D bubble effect */}
-                  <div className="absolute top-[5%] left-[20%] right-[20%] h-[30%] bg-gradient-to-b from-white/60 to-transparent rounded-[100%] blur-[2px] pointer-events-none opacity-80" />
-                  <div className="absolute bottom-[5%] left-[15%] right-[15%] h-[20%] bg-gradient-to-t from-white/30 to-transparent rounded-[100%] blur-[2px] pointer-events-none opacity-60" />
-                </>
-              )}
-
-              <div className="relative z-30 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                {isRecording ? <Square className="w-7 h-7 fill-current text-white" /> : <Mic className="w-8 h-8" />}
-              </div>
-            </motion.button>
+              audioStream={audioStream}
+            />
           </div>
           
         </div>

@@ -2,6 +2,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+:root {
+  --orb-color-1: #bf5af2;
+  --orb-color-2: #32ade6;
+  --orb-color-3: #ff375f;
+  --orb-color-4: #30d158;
+}
+
 body {
   @apply bg-slate-100 text-slate-900 transition-colors duration-300;
 }

@@ -19,9 +19,9 @@ export interface SyncNote {
   projectId: string;
   userId: string;
   content: string;
-  reminderTime: number | null; // Unix timestamp
+  reminderTime: number | string | null; // Unix timestamp or ISO string
   reminderText?: string;
-  dueDate?: number | null;
+  dueDate?: number | string | null;
   priority?: NotePriority;
   frequency: Frequency;
   timesPerDay?: number;

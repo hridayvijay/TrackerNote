@@ -36,6 +36,7 @@ import {
   CheckCircle2,
   XCircle,
   ArrowRight,
+  ArrowLeft,
   UserCheck,
   AlertCircle,
 } from "lucide-react";
@@ -59,6 +60,9 @@ export default function App() {
   const [googleUsernameAvailable, setGoogleUsernameAvailable] = useState<boolean | null>(null);
   const [googleUsernameError, setGoogleUsernameError] = useState("");
   const [savingGoogleUsername, setSavingGoogleUsername] = useState(false);
+  const [googleSetupStep, setGoogleSetupStep] = useState<1 | 2>(1);
+  const [googleDisplayName, setGoogleDisplayName] = useState("");
+  const [googleSuggestedUsername, setGoogleSuggestedUsername] = useState("");
 
   // Auth / Form states (when !user)
   const [isSignUp, setIsSignUp] = useState(false);
@@ -255,7 +259,7 @@ export default function App() {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         
         // 2. Lock username in Firestore database under uid
-        await saveUsername(cred.user.uid, username, email);
+        await saveUsername(cred.user.uid, username, email, username);
 
         // 3. Update auth display name
         await updateProfile(cred.user, { displayName: username });
@@ -315,8 +319,8 @@ export default function App() {
 
     setSavingGoogleUsername(true);
     try {
-      await saveUsername(user.uid, chosenGoogleUsername, user.email || "");
-      await updateProfile(user, { displayName: chosenGoogleUsername });
+      await saveUsername(user.uid, chosenGoogleUsername, user.email || "", googleDisplayName);
+      await updateProfile(user, { displayName: googleDisplayName });
       
       const prof = await getUserProfile(user.uid);
       setUserProfile(prof);
@@ -542,64 +546,134 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-slate-950 dark:via-purple-950/20 dark:to-cyan-950/30 pointer-events-none" />
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="glass-panel max-w-md w-full rounded-2xl p-8 relative z-10 border border-slate-200 dark:border-slate-800 shadow-2xl"
-        >
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <div className="mx-auto w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center text-indigo-500">
-                <UserCheck className="w-6 h-6" />
-              </div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white">Choose Username</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Please choose a unique display name to finalize your Google profile mapping setup.</p>
-            </div>
-
-            <form onSubmit={handleSaveGoogleUsername} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Username Profile</label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={chosenGoogleUsername}
-                    onChange={(e) => handleGoogleUsernameChangeRaw(e.target.value)}
-                    placeholder="Enter alphanumeric username"
-                    className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-850 bg-white/50 dark:bg-slate-900/40 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
-                    required
-                  />
-                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center">
-                    {checkingGoogleUsername && <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />}
-                    {!checkingGoogleUsername && googleUsernameAvailable === true && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-                    {!checkingGoogleUsername && googleUsernameAvailable === false && <XCircle className="w-4 h-4 text-red-500" />}
-                  </div>
-                </div>
-                {googleUsernameAvailable === true && (
-                  <p className="text-[11px] text-emerald-500 font-bold">✨ Username is available</p>
-                )}
-                {googleUsernameAvailable === false && (
-                  <p className="text-[11px] text-red-500 font-bold">❌ This username is already taken</p>
-                )}
-              </div>
-
-              {googleUsernameError && (
-                <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20 text-xs font-medium text-red-600">
-                  {googleUsernameError}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={savingGoogleUsername || !googleUsernameAvailable}
-                className="w-full font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl shadow-lg transition-all disabled:opacity-50"
+        <div className="relative z-10 w-full max-w-md overflow-hidden">
+          <AnimatePresence mode="wait">
+            {googleSetupStep === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="glass-panel w-full rounded-2xl p-8 border border-slate-200 dark:border-slate-800 shadow-2xl"
               >
-                {savingGoogleUsername ? "Saving Profile..." : "Complete Setup"}
-              </button>
-            </form>
-          </div>
-        </motion.div>
+                <div className="space-y-6">
+                  <div className="text-center space-y-2">
+                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">What is your name?</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      (This is how we'll refer to you — and how others will see you)
+                    </p>
+                  </div>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (googleDisplayName.length >= 2 && googleDisplayName.length <= 40) {
+                        const cleanBase = googleDisplayName.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+                        setGoogleSuggestedUsername(`${cleanBase || "user"}_${Math.floor(100 + Math.random() * 900)}`);
+                        setGoogleSetupStep(2);
+                      }
+                    }}
+                    className="space-y-4"
+                  >
+                    <div>
+                      <input
+                        type="text"
+                        value={googleDisplayName}
+                        onChange={(e) => setGoogleDisplayName(e.target.value)}
+                        placeholder="Your display name"
+                        className="w-full px-4 py-4 rounded-xl border border-slate-200 dark:border-slate-850 bg-white/50 dark:bg-slate-900/40 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg font-medium text-center"
+                        minLength={2}
+                        maxLength={40}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={googleDisplayName.length < 2 || googleDisplayName.length > 40}
+                      className="w-full font-bold text-base bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl shadow-lg transition-all disabled:opacity-50"
+                    >
+                      Continue
+                    </button>
+                  </form>
+                </div>
+              </motion.div>
+            )}
+
+            {googleSetupStep === 2 && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="glass-panel w-full rounded-2xl p-8 border border-slate-200 dark:border-slate-800 shadow-2xl"
+              >
+                <div className="space-y-6">
+                  <div className="relative text-center space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setGoogleSetupStep(1)}
+                      className="absolute left-0 top-0 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div className="mx-auto w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center text-indigo-500">
+                      <UserCheck className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white">Choose Username</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Please choose a unique identifier.</p>
+                  </div>
+
+                  <form onSubmit={handleSaveGoogleUsername} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Username Profile</label>
+                      <div className="relative">
+                        <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          value={chosenGoogleUsername}
+                          onChange={(e) => handleGoogleUsernameChangeRaw(e.target.value)}
+                          placeholder="Enter alphanumeric username"
+                          className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-850 bg-white/50 dark:bg-slate-900/40 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
+                          required
+                        />
+                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center">
+                          {checkingGoogleUsername && <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />}
+                          {!checkingGoogleUsername && googleUsernameAvailable === true && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                          {!checkingGoogleUsername && googleUsernameAvailable === false && <XCircle className="w-4 h-4 text-red-500" />}
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                        Usernames must be unique. <span className="italic opacity-70">Try: {googleSuggestedUsername}</span>
+                      </p>
+                      {googleUsernameAvailable === true && (
+                        <p className="text-[11px] text-emerald-500 font-bold mt-1">✨ Username is available</p>
+                      )}
+                      {googleUsernameAvailable === false && (
+                        <p className="text-[11px] text-red-500 font-bold mt-1">❌ This username is already taken</p>
+                      )}
+                    </div>
+
+                    {googleUsernameError && (
+                      <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20 text-xs font-medium text-red-600">
+                        {googleUsernameError}
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={savingGoogleUsername || !googleUsernameAvailable}
+                      className="w-full font-bold text-sm bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl shadow-lg transition-all disabled:opacity-50"
+                    >
+                      {savingGoogleUsername ? "Saving Profile..." : "Finish setup"}
+                    </button>
+                  </form>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     );
   }

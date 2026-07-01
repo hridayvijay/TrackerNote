@@ -26,7 +26,7 @@ export default async function handler(req: Request, res: Response) {
     return res.status(500).json({ error: 'FIREBASE_SERVICE_ACCOUNT_JSON is not configured' });
   }
 
-  const { uid, audioBase64, mimeType } = req.body;
+  const { uid, audioBase64, mimeType, displayName } = req.body;
 
   if (!uid || !audioBase64 || !mimeType) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -51,8 +51,13 @@ export default async function handler(req: Request, res: Response) {
     const dayOfWeek = istTime.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
     const formattedDate = istTime.toISOString().split('T')[0];
     const todayContext = `Today is ${dayOfWeek}, ${formattedDate}.`;
+    
+    let displayNameContext = "";
+    if (displayName) {
+      displayNameContext = `The person speaking is named ${displayName}. When they use first-person pronouns (I, me, my, myself, I've, I'll, I need to, I have to), replace them in the generated noteContent with the person's name in third person. For example: 'I have to call Ritu' becomes '${displayName} has to call Ritu.' Only noteContent uses this substitution — do not apply it to any other JSON fields. `;
+    }
 
-    const systemInstruction = `${todayContext} You are a task parser. The user will speak a task description. Extract and return ONLY a valid JSON object with these exact fields: stakeholder (the main person responsible — strip all honorifics like Sir, Maam, Ma'am, Mr, Mrs, Dr, Miss and normalize to Title Case), project (the topic or work item), noteContent (full context of what needs doing, written as a clear task statement), reminderText (short action phrase max 6 words starting with a verb), timesPerDay (number, how many reminders per day, default 1 if not mentioned), daysOfWeek (array of day name strings if specific days mentioned, empty array means every day), dueDate (optional ISO 8601 datetime string), priority (High Medium or Low inferred from urgency language), status (always the string Pending). You will be told today's exact date and day of the week as system context, separate from anything the user said. The user will never mention today's date themselves. When the user mentions any relative date or time reference, resolve it into an actual ISO 8601 datetime using the provided today's-date as the reference point. Populate the dueDate field with the resolved ISO datetime. If multiple days are mentioned for a recurring task, populate daysOfWeek with the actual day names resolved from context, not relative phrases. Never return a relative phrase like 'next week' as a literal string in the JSON — always resolve it to a real date. Return nothing except the raw JSON object. No markdown. No explanation.`;
+    const systemInstruction = `${displayNameContext}${todayContext} You are a task parser. The user will speak a task description. Extract and return ONLY a valid JSON object with these exact fields: stakeholder (the main person responsible — strip all honorifics like Sir, Maam, Ma'am, Mr, Mrs, Dr, Miss and normalize to Title Case), project (the topic or work item), noteContent (full context of what needs doing, written as a clear task statement), reminderText (short action phrase max 6 words starting with a verb), timesPerDay (number, how many reminders per day, default 1 if not mentioned), daysOfWeek (array of day name strings if specific days mentioned, empty array means every day), dueDate (optional ISO 8601 datetime string), priority (High Medium or Low inferred from urgency language), status (always the string Pending). You will be told today's exact date and day of the week as system context, separate from anything the user said. The user will never mention today's date themselves. When the user mentions any relative date or time reference, resolve it into an actual ISO 8601 datetime using the provided today's-date as the reference point. Populate the dueDate field with the resolved ISO datetime. If multiple days are mentioned for a recurring task, populate daysOfWeek with the actual day names resolved from context, not relative phrases. Never return a relative phrase like 'next week' as a literal string in the JSON — always resolve it to a real date. Do not include the resolved due date or reminder time inside the noteContent field. Those go in dueDate and reminder fields only. noteContent should describe the task without mentioning specific dates. If Gemini embedded a date as plain text inside noteContent, strip it out of noteContent during parsing on the server before returning the JSON. Return nothing except the raw JSON object. No markdown. No explanation.`;
 
     const contents = [
       {

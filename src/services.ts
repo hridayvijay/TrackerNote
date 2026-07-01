@@ -139,6 +139,7 @@ export interface UserProfile {
   userId: string;
   email: string;
   username: string;
+  displayName?: string;
   createdAt: number;
   updatedAt?: number;
 }
@@ -170,7 +171,7 @@ export async function saveFcmToken(uid: string, token: string): Promise<void> {
   await setDoc(userRef, { fcmToken: token }, { merge: true });
 }
 
-export async function saveUsername(uid: string, username: string, email: string): Promise<void> {
+export async function saveUsername(uid: string, username: string, email: string, displayName?: string): Promise<void> {
   const cleanUsername = username.trim();
   const lowercaseUsername = cleanUsername.toLowerCase();
   
@@ -178,13 +179,19 @@ export async function saveUsername(uid: string, username: string, email: string)
   
   // Set the user profile document
   const userRef = doc(db, "users", uid);
-  batch.set(userRef, {
+  const userData: any = {
     userId: uid,
     username: cleanUsername,
     email: email || "",
     createdAt: Date.now(),
     updatedAt: Date.now(),
-  });
+  };
+  
+  if (displayName) {
+    userData.displayName = displayName;
+  }
+  
+  batch.set(userRef, userData, { merge: true });
   
   // Set the username-to-uid lock document
   const usernameRef = doc(db, "usernames", lowercaseUsername);

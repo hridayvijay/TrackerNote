@@ -20,11 +20,15 @@ import { Plus, Users, LayoutDashboard, Clock, AlertCircle, Trash2, Wifi, WifiOff
 import { isFuture, format } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
+
 export default function NotesDashboard({ user }: { user: User }) {
   const [projects, setProjects] = useState<SyncProject[]>([]);
   const [notes, setNotes] = useState<SyncNote[]>([]);
   const [error, setError] = useState("");
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [allAppUsers, setAllAppUsers] = useState<any[]>([]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -38,6 +42,32 @@ export default function NotesDashboard({ user }: { user: User }) {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "users"));
+        setAllAppUsers(snapshot.docs.map(d => d.data()));
+      } catch (e) {
+        console.error("Failed to fetch users", e);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const renderDisplayName = (name: string) => {
+    const matchingUsers = allAppUsers.filter(u => u.displayName === name);
+    if (matchingUsers.length > 1) {
+      // Conflict exists, append @username for the first matched user (as a heuristic)
+      return (
+        <span className="flex items-center space-x-1">
+          <span>{name}</span>
+          <span className="text-slate-400 font-normal text-sm lowercase">@{matchingUsers[0].username}</span>
+        </span>
+      );
+    }
+    return <span>{name}</span>;
+  };
 
   const [retainedAssignees, setRetainedAssignees] = useState<string[]>(() => {
     try {
@@ -174,7 +204,7 @@ export default function NotesDashboard({ user }: { user: User }) {
           isFuture(new Date(n.reminderTime)) &&
           n.status !== "Done",
       )
-      .sort((a, b) => a.reminderTime! - b.reminderTime!);
+      .sort((a, b) => new Date(a.reminderTime!).getTime() - new Date(b.reminderTime!).getTime());
   }, [notes]);
 
   const handleDeleteProject = (id: string) => {
@@ -337,8 +367,8 @@ export default function NotesDashboard({ user }: { user: User }) {
                   </div>
                   <div className="min-w-0 flex-1 flex items-center justify-between space-x-2">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate tracking-tight">
-                        {assignee}
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate tracking-tight flex items-center gap-1">
+                        {renderDisplayName(assignee)}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                         {assigneeProjects.length} Projects
@@ -364,6 +394,7 @@ export default function NotesDashboard({ user }: { user: User }) {
                       index={projIndex}
                       project={proj}
                       notes={notes.filter((n) => n.projectId === proj.id)}
+                      currentUserDisplayName={user.displayName || ""}
                       onEditProject={(p) =>
                         setProjectFormProps({ open: true, project: p })
                       }
