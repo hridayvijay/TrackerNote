@@ -157,8 +157,6 @@ float snoise(vec3 v){
 }
 
 void main() {
-  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-  return;
   vec3 colorIdle = vec3(0.0);
   vec3 colorRec = vec3(0.0);
   vec3 colorParse = vec3(0.0);

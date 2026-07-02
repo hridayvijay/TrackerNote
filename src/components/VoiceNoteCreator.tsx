@@ -37,6 +37,8 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
+  const isRecordingRef = useRef(false);
+  const finalTranscriptRef = useRef('');
 
   useEffect(() => {
     return () => {
@@ -97,45 +99,57 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     }
 
     try {
-      // Start SpeechRecognition synchronously before await to satisfy browser user-gesture requirements
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        setErrorType("mic");
+        setErrorMessage("Microphone permission denied.");
+        return;
+      }
+
+      const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
+      
+      if (SpeechRecognition && !isFirefox) {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'en-US';
         
-        let finalTranscript = '';
+        finalTranscriptRef.current = '';
         
         recognition.onresult = (event: any) => {
           console.log("SR result", event.results[event.resultIndex][0].transcript);
-          let currentInterim = '';
+          let interim = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const t = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript;
+              finalTranscriptRef.current += t + ' ';
             } else {
-              currentInterim += event.results[i][0].transcript;
+              interim += t;
             }
           }
-          const display = (finalTranscript + ' ' + currentInterim).trim();
-          setInterimText(display);
+          const combined = (finalTranscriptRef.current + interim).trim();
+          setInterimText(combined);
         };
         recognition.onerror = (event: any) => {
           console.error("SpeechRecognition error:", event.error);
         };
         recognition.onend = () => {
-          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording' && recognitionRef.current) {
-             try { recognitionRef.current.start(); } catch(e){}
+          if (isRecordingRef.current) {
+             try { recognition.start(); } catch(e){}
           }
         };
         
         recognition.start();
         recognitionRef.current = recognition;
+      } else if (isFirefox) {
+        setInterimText("Live transcription is not available in Firefox. Your voice note will still be transcribed by AI after recording.");
       } else {
         setInterimText("Live transcription is not supported in this browser. Keep speaking, the audio will still be parsed!");
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       let options: any = { audioBitsPerSecond: 32000 };
       if (typeof MediaRecorder.isTypeSupported === 'function') {
         if (MediaRecorder.isTypeSupported('audio/webm')) options.mimeType = 'audio/webm';
@@ -182,6 +196,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
       mediaRecorder.start(100);
       setIsRecording(true);
+      isRecordingRef.current = true;
       startTimer();
     } catch (err: any) {
       console.error("Recording error:", err);
@@ -193,6 +208,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const stopRecording = () => {
     if (!isRecording) return;
     setIsRecording(false);
+    isRecordingRef.current = false;
     setIsParsing(true);
     stopTimer();
     mediaRecorderRef.current?.stop();
@@ -329,7 +345,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
       {/* Main Mic Button / Recorder UI */}
       {errorType === "none" && (
-        <div className="relative flex flex-col items-center">
+        <div className="relative flex flex-col items-center" style={{ position: 'relative' }}>
           
           <KineticTranscription transcript={interimText} isRecording={isRecording} />
 

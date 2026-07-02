@@ -29,7 +29,6 @@ export interface SyncNote {
   nextReminders?: number[];
   lastNotifiedAt: number | null;
   status: NoteStatus;
-  audioData?: string;
   createdAt: number;
   updatedAt: number;
 }

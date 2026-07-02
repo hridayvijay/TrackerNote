@@ -19,7 +19,6 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
   const [status, setStatus] = useState<NoteStatus>("Pending");
   const [priority, setPriority] = useState<NotePriority>("Medium");
   const [dueDateStr, setDueDateStr] = useState("");
-  const [audioData, setAudioData] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -54,7 +53,6 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
       setStatus(note.status);
       setFrequency(note.frequency || "Once");
       setPriority(note.priority || "Medium");
-      setAudioData(note.audioData || null);
       if (note.reminderTime) {
         setReminderStr(
           format(new Date(note.reminderTime), "yyyy-MM-dd'T'HH:mm"),
@@ -188,12 +186,7 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
         reader.onloadend = async () => {
           const base64data = reader.result as string;
           if (base64data.length > 800000) {
-            alert(
-              "Recorded audio is too large to save to database. Transcription will be saved instead.",
-            );
-            setAudioData(null);
-          } else {
-            setAudioData(base64data);
+            console.warn("Recorded audio is too large. Attempting transcription...");
           }
           
           setLoading(true);
@@ -277,8 +270,8 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!content.trim() && !audioData) {
-      setError("Note content or audio cannot be empty");
+    if (!content.trim()) {
+      setError("Note content cannot be empty");
       return;
     }
 
@@ -299,7 +292,6 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
           frequency,
           status,
           priority,
-          ...(audioData !== undefined && { audioData }),
         });
       } else {
         await addSyncNote({
@@ -311,7 +303,6 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
           lastNotifiedAt: null,
           status,
           priority,
-          ...(audioData && { audioData }),
         });
       }
       onClose();
@@ -350,7 +341,7 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
               placeholder="Jot down a task or record a voice note..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              required={!audioData}
+              required
               autoFocus
             />
             {isRecording && (
@@ -389,31 +380,7 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
                 </button>
               )}
             </div>
-
-            {audioData && (
-              <div className="flex items-center bg-[var(--theme-bg-secondary)] text-[var(--theme-accent-text)] px-2.5 py-1 rounded-lg border border-emerald-200/50 text-xs font-bold shadow-sm backdrop-blur-md">
-                <Music className="w-3.5 h-3.5 mr-1.5 opacity-80" />
-                Audio Attached
-                <button
-                  type="button"
-                  onClick={() => setAudioData(null)}
-                  className="ml-2 p-0.5 hover:bg-[var(--theme-bg-secondary)] rounded-md transition-colors"
-                >
-                  <CircleSlash className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
           </div>
-
-          {audioData && (
-            <div className="animate-in fade-in p-1 rounded-full bg-[var(--theme-bg-card)] border border-white/30 shadow-sm backdrop-blur-md">
-              <audio
-                src={audioData}
-                controls
-                className="w-full h-8 rounded-full"
-              />
-            </div>
-          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/20 border-[var(--theme-border)]/50">
             <div>

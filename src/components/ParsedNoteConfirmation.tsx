@@ -32,31 +32,11 @@ export default function ParsedNoteConfirmation({
   const [daysOfWeek, setDaysOfWeek] = useState<string[]>(parsedData.daysOfWeek || []);
   const [priority, setPriority] = useState<NotePriority>((parsedData.priority as NotePriority) || "Medium");
 
-  const formatDatetimeLocal = (isoString?: string | null) => {
-    if (!isoString) return "";
-    try {
-      const d = new Date(isoString);
-      if (isNaN(d.getTime())) return "";
-      return d.toISOString().slice(0, 16);
-    } catch {
-      return "";
-    }
-  };
+  const toDatetimeLocal = (iso?: string | null) => 
+    iso ? new Date(iso).toISOString().slice(0,16) : '';
 
-  const defaultReminder = (isoString?: string | null) => {
-    if (!isoString) return "";
-    try {
-      const d = new Date(isoString);
-      if (isNaN(d.getTime())) return "";
-      d.setMinutes(d.getMinutes() - 30);
-      return d.toISOString().slice(0, 16);
-    } catch {
-      return "";
-    }
-  };
-
-  const [dueDateStr, setDueDateStr] = useState(formatDatetimeLocal(parsedData.dueDate));
-  const [reminderStr, setReminderStr] = useState(defaultReminder(parsedData.dueDate));
+  const [dueDateStr, setDueDateStr] = useState(toDatetimeLocal(parsedData.dueDate));
+  const [reminderStr, setReminderStr] = useState(toDatetimeLocal(parsedData.dueDate));
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
