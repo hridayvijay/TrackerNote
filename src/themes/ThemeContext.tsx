@@ -15,7 +15,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function injectThemeVars(themeId: ThemeId, mode: ThemeMode) {
   const theme = THEMES[themeId]?.[mode] || THEMES.cosmic.dark;
+  console.log("injectThemeVars called! themeId:", themeId, "mode:", mode, "bgPrimary:", theme?.bgPrimary);
   const root = document.documentElement;
+  
+  console.log(`Injecting theme: ${themeId} (${mode}). bgPrimary: ${theme.bgPrimary}`);
   
   root.style.setProperty("--theme-bg-primary", theme.bgPrimary);
   root.style.setProperty("--theme-bg-secondary", theme.bgSecondary);

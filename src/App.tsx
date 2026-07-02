@@ -346,7 +346,7 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[var(--theme-bg-primary)] dark:bg-[var(--theme-bg-primary)]">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-purple-100/50 to-pink-100/50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 pointer-events-none" />
+        
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[var(--theme-accent)]/30 dark:bg-[var(--theme-accent)]/10 rounded-full blur-[100px] pointer-events-none" />
         <div className="animate-pulse flex items-center space-x-2 text-[var(--theme-accent-text)] z-10 relative">
           <Briefcase className="w-5 h-5" />
@@ -362,7 +362,7 @@ function App() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[var(--theme-bg-primary)] transition-colors duration-300">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-150 dark:from-slate-950 dark:via-purple-950/20 dark:to-cyan-950/30 pointer-events-none" />
+        
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-[var(--theme-accent)]/40 dark:bg-[var(--theme-accent)]/15 rounded-full blur-[100px]" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-300/40 dark:bg-cyan-600/15 rounded-full blur-[100px]" />
 
@@ -540,7 +540,7 @@ function App() {
   if (needsUsernameChoice) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[var(--theme-bg-primary)] transition-colors duration-300">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-slate-950 dark:via-purple-950/20 dark:to-cyan-950/30 pointer-events-none" />
+        
         <div className="relative z-10 w-full max-w-md overflow-hidden">
           <AnimatePresence mode="wait">
             {googleSetupStep === 1 && (
@@ -676,7 +676,7 @@ function App() {
   // Base Dashboard layout with account navigation
   return (
     <div className="min-h-screen flex flex-col font-sans relative overflow-hidden bg-[var(--theme-bg-primary)] transition-colors duration-300 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-white/50 to-cyan-50/50 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/30 pointer-events-none z-0" />
+      
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-400/10 dark:bg-purple-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
 

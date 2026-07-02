@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { useTheme } from "../themes/ThemeContext";
+import { THEMES } from "../themes/themes";
 
 interface VoiceOrbProps {
   state: "idle" | "recording" | "parsing";
@@ -156,6 +157,8 @@ float snoise(vec3 v){
 }
 
 void main() {
+  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+  return;
   vec3 colorIdle = vec3(0.0);
   vec3 colorRec = vec3(0.0);
   vec3 colorParse = vec3(0.0);
@@ -165,9 +168,9 @@ void main() {
     vec3 b1Center = vec3(cos(t)*0.4, sin(t*0.7)*0.4, sin(t*0.5)*0.3);
     vec3 b2Center = vec3(cos(t+2.09)*0.38, sin(t*0.6+1.0)*0.35, cos(t*0.8)*0.3);
     vec3 b3Center = vec3(cos(t+4.19)*0.34, sin(t*0.9+2.0)*0.32, sin(t)*0.28);
-    float b1 = smoothstep(0.6, 0.0, length(vPosition - b1Center));
-    float b2 = smoothstep(0.55, 0.0, length(vPosition - b2Center));
-    float b3 = smoothstep(0.5, 0.0, length(vPosition - b3Center));
+    float b1 = 1.0 - smoothstep(0.0, 0.6, length(vPosition - b1Center));
+    float b2 = 1.0 - smoothstep(0.0, 0.55, length(vPosition - b2Center));
+    float b3 = 1.0 - smoothstep(0.0, 0.5, length(vPosition - b3Center));
     colorIdle = mix(u_orbBg, u_color1, b1); 
     colorIdle = mix(colorIdle, u_color2, b2); 
     colorIdle = mix(colorIdle, u_color3, b3*0.7);
@@ -182,10 +185,10 @@ void main() {
     vec3 b3C = vec3(cos(rt+3.14)*orbitR, sin(rt+3.14)*orbitR, 0.0);
     vec3 b4C = vec3(cos(rt+4.71)*orbitR, sin(rt+4.71)*orbitR, 0.0);
     float blobSize = 0.5 + u_amplitude * 0.4;
-    float b1 = smoothstep(blobSize, 0.0, length(vPosition - b1C));
-    float b2 = smoothstep(blobSize, 0.0, length(vPosition - b2C));
-    float b3 = smoothstep(blobSize, 0.0, length(vPosition - b3C));
-    float b4 = smoothstep(blobSize, 0.0, length(vPosition - b4C));
+    float b1 = 1.0 - smoothstep(0.0, blobSize, length(vPosition - b1C));
+    float b2 = 1.0 - smoothstep(0.0, blobSize, length(vPosition - b2C));
+    float b3 = 1.0 - smoothstep(0.0, blobSize, length(vPosition - b3C));
+    float b4 = 1.0 - smoothstep(0.0, blobSize, length(vPosition - b4C));
     
     colorRec = mix(u_orbBg, u_color1, b1);
     colorRec = mix(colorRec, u_color2, b2);
@@ -208,7 +211,7 @@ void main() {
     
     float scanA = u_time * 2.5;
     vec3 scanDir = normalize(vec3(sin(scanA), 0.0, cos(scanA)));
-    float scan = smoothstep(0.06, 0.0, abs(dot(normalize(vPosition), scanDir) - 0.92));
+    float scan = 1.0 - smoothstep(0.0, 0.06, abs(dot(normalize(vPosition), scanDir) - 0.92));
     colorParse += vec3(scan * 0.85);
     colorParse *= u_breathe;
   }
@@ -246,10 +249,7 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
   const dataArrayRef = useRef<Uint8Array | null>(null);
 
   // Parse CSS var back to THREE.Color
-  const parseColor = (varName: string) => {
-    const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-    return new THREE.Color(val || "#ffffff");
-  };
+  const parseColor = (varName: string) => new THREE.Color("#ffffff");
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -261,6 +261,8 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(90, 90);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.debug.checkShaderErrors = true;
+    console.log("WebGLRenderer initialized in VoiceOrb");
     containerRef.current.appendChild(renderer.domElement);
 
     const geometry = new THREE.SphereGeometry(1, 64, 64);
@@ -276,11 +278,11 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
         u_state: { value: 0.0 },
         u_breathe: { value: 1.0 },
         u_weights: { value: new THREE.Vector3(1.0, 0.0, 0.0) },
-        u_color1: { value: parseColor("--theme-orb-1") },
-        u_color2: { value: parseColor("--theme-orb-2") },
-        u_color3: { value: parseColor("--theme-orb-3") },
-        u_color4: { value: parseColor("--theme-orb-4") },
-        u_orbBg: { value: parseColor("--theme-orb-bg") },
+        u_color1: { value: new THREE.Color(THEMES[themeId][mode].orb[0]) },
+        u_color2: { value: new THREE.Color(THEMES[themeId][mode].orb[1]) },
+        u_color3: { value: new THREE.Color(THEMES[themeId][mode].orb[2]) },
+        u_color4: { value: new THREE.Color(THEMES[themeId][mode].orb[3]) },
+        u_orbBg: { value: new THREE.Color(THEMES[themeId][mode].orbBg) },
       }
     });
 
@@ -292,10 +294,16 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
 
     let targetWeights = new THREE.Vector3(1.0, 0.0, 0.0);
     let targetState = 0.0;
+    let frameCount = 0;
 
     const updateLoop = () => {
       reqIdRef.current = requestAnimationFrame(updateLoop);
       if (!materialRef.current || !meshRef.current) return;
+      
+      frameCount++;
+      if (frameCount % 60 === 0) {
+         console.log("VoiceOrb updateLoop running, frame:", frameCount);
+      }
 
       const mat = materialRef.current;
       const m = meshRef.current;
@@ -364,11 +372,11 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
     
     // We delay slightly to let CSS variables apply via Context
     const t = setTimeout(() => {
-      materialRef.current!.uniforms.u_color1.value = parseColor("--theme-orb-1");
-      materialRef.current!.uniforms.u_color2.value = parseColor("--theme-orb-2");
-      materialRef.current!.uniforms.u_color3.value = parseColor("--theme-orb-3");
-      materialRef.current!.uniforms.u_color4.value = parseColor("--theme-orb-4");
-      materialRef.current!.uniforms.u_orbBg.value = parseColor("--theme-orb-bg");
+      materialRef.current!.uniforms.u_color1.value = new THREE.Color(THEMES[themeId][mode].orb[0]);
+      materialRef.current!.uniforms.u_color2.value = new THREE.Color(THEMES[themeId][mode].orb[1]);
+      materialRef.current!.uniforms.u_color3.value = new THREE.Color(THEMES[themeId][mode].orb[2]);
+      materialRef.current!.uniforms.u_color4.value = new THREE.Color(THEMES[themeId][mode].orb[3]);
+      materialRef.current!.uniforms.u_orbBg.value = new THREE.Color(THEMES[themeId][mode].orbBg);
     }, 50);
 
     return () => clearTimeout(t);

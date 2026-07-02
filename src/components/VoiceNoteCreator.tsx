@@ -108,6 +108,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         let finalTranscript = '';
         
         recognition.onresult = (event: any) => {
+          console.log("SR result", event.results[event.resultIndex][0].transcript);
           let currentInterim = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {

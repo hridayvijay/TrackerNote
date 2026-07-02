@@ -280,7 +280,7 @@ export default function NotesDashboard({ user }: { user: User }) {
               return (
                 <div
                   key={rem.id}
-                  className="min-w-[200px] shrink-0 snap-end bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-secondary)]/80 backdrop-blur-md px-3 py-2 rounded-xl border border-white/50 dark:border-[var(--theme-border)]/50 shadow-sm flex flex-col cursor-pointer transition-colors hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-secondary)] text-xs"
+                  className="min-w-[200px] shrink-0 snap-end bg-[var(--theme-bg-card)] bg-[var(--theme-bg-card)] backdrop-blur-md px-3 py-2 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)] shadow-sm flex flex-col cursor-pointer transition-colors hover:bg-[var(--theme-bg-card-hover)] text-xs"
                   onClick={() =>
                     setNoteFormProps({
                       open: true,
@@ -357,7 +357,7 @@ export default function NotesDashboard({ user }: { user: User }) {
                 exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)", transition: { duration: 0.2 } }}
                 transition={{ duration: 0.4, delay: colIndex * 0.08, ease: "easeOut" }}
                 key={assignee}
-                className="min-w-[340px] max-w-[340px] shrink-0 snap-center flex flex-col h-full bg-slate-200/30 dark:bg-[var(--theme-bg-secondary)]/20 backdrop-blur-lg border border-slate-300/40 dark:border-[var(--theme-border)]/50 rounded-3xl p-4 transition-colors hover:bg-slate-200/50 dark:hover:bg-[var(--theme-bg-secondary)]/40"
+                className="min-w-[340px] max-w-[340px] shrink-0 snap-center flex flex-col h-full bg-[var(--theme-bg-card)] backdrop-blur-lg border border-[var(--theme-border)] rounded-3xl p-4 transition-colors hover:bg-[var(--theme-bg-card-hover)]"
                 onDragOver={(e: any) => e.preventDefault()}
                 onDrop={(e: any) => handleDropProject(e, assignee)}
               >

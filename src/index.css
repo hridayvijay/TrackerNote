@@ -10,19 +10,19 @@
 }
 
 body {
-  @apply bg-slate-100 text-slate-900 transition-colors duration-300;
+  @apply bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] transition-colors duration-300;
 }
 
 .dark body {
-  @apply bg-slate-950 text-slate-100;
+  @apply bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)];
 }
 
 /* Glassmorphism Classes */
 .glass {
-  @apply bg-white/40 backdrop-blur-xl border border-white/20 shadow-lg dark:bg-slate-900/40 dark:border-slate-700/50;
+  @apply bg-[var(--theme-bg-card)] backdrop-blur-xl border border-[var(--theme-border)] shadow-lg;
 }
 
 .glass-panel {
-  @apply bg-white/60 backdrop-blur-2xl border border-white/30 shadow-xl dark:bg-slate-800/50 dark:border-slate-700/60;
+  @apply bg-[var(--theme-bg-card)] backdrop-blur-2xl border border-[var(--theme-border)] shadow-xl;
 }
 

@@ -22,6 +22,7 @@ export default function KineticTranscription({ transcript, isRecording }: Kineti
   const currentWordRef = useRef<string>("");
 
   useEffect(() => {
+    if (transcript) console.log("KT received transcript", transcript);
     if (isRecording) {
       setCompletedWords([]);
       setCurrentWord("");
@@ -33,6 +34,7 @@ export default function KineticTranscription({ transcript, isRecording }: Kineti
   }, [isRecording]);
 
   useEffect(() => {
+    if (transcript) console.log("KT received transcript", transcript);
     if (!isRecording) {
       if (completedWordsRef.current.length > 0 || currentWordRef.current) {
         if (currentWordRef.current) {
@@ -123,6 +125,7 @@ export default function KineticTranscription({ transcript, isRecording }: Kineti
   }, [transcript, isRecording]);
 
   useEffect(() => {
+    if (transcript) console.log("KT received transcript", transcript);
     if (containerRef.current) {
         containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
