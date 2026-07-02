@@ -239,7 +239,7 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
   const containerRef = useRef<HTMLDivElement>(null);
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
-  const { themeId, mode } = useTheme();
+  const { themeId, mode, orbColors } = useTheme();
 
   const reqIdRef = useRef<number>(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -276,10 +276,10 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
         u_state: { value: 0.0 },
         u_breathe: { value: 1.0 },
         u_weights: { value: new THREE.Vector3(1.0, 0.0, 0.0) },
-        u_color1: { value: new THREE.Color(THEMES[themeId][mode].orb[0]) },
-        u_color2: { value: new THREE.Color(THEMES[themeId][mode].orb[1]) },
-        u_color3: { value: new THREE.Color(THEMES[themeId][mode].orb[2]) },
-        u_color4: { value: new THREE.Color(THEMES[themeId][mode].orb[3]) },
+        u_color1: { value: new THREE.Color('#000000') },
+        u_color2: { value: new THREE.Color('#000000') },
+        u_color3: { value: new THREE.Color('#000000') },
+        u_color4: { value: new THREE.Color('#000000') },
         u_orbBg: { value: new THREE.Color(THEMES[themeId][mode].orbBg) },
       }
     });
@@ -370,15 +370,15 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
     
     // We delay slightly to let CSS variables apply via Context
     const t = setTimeout(() => {
-      materialRef.current!.uniforms.u_color1.value = new THREE.Color(THEMES[themeId][mode].orb[0]);
-      materialRef.current!.uniforms.u_color2.value = new THREE.Color(THEMES[themeId][mode].orb[1]);
-      materialRef.current!.uniforms.u_color3.value = new THREE.Color(THEMES[themeId][mode].orb[2]);
-      materialRef.current!.uniforms.u_color4.value = new THREE.Color(THEMES[themeId][mode].orb[3]);
-      materialRef.current!.uniforms.u_orbBg.value = new THREE.Color(THEMES[themeId][mode].orbBg);
+      materialRef.current!.uniforms.u_color1.value.set(orbColors[0]);
+      materialRef.current!.uniforms.u_color2.value.set(orbColors[1]);
+      materialRef.current!.uniforms.u_color3.value.set(orbColors[2]);
+      materialRef.current!.uniforms.u_color4.value.set(orbColors[3]);
+      materialRef.current!.uniforms.u_orbBg.value.set(THEMES[themeId][mode].orbBg);
     }, 50);
 
     return () => clearTimeout(t);
-  }, [themeId, mode]);
+  }, [themeId, mode, orbColors]);
 
   // Handle audio stream updates
   useEffect(() => {

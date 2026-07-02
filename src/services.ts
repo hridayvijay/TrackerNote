@@ -112,8 +112,18 @@ export async function addSyncNote(
   if (!auth.currentUser) throw new Error("Not authenticated");
   const docRef = doc(collection(db, "syncNotes"));
   const now = Date.now();
+  
+  // Convert timestamps to ISO strings if they are numbers
+  const dueDateIso = note.dueDate ? (typeof note.dueDate === 'number' ? new Date(note.dueDate).toISOString() : note.dueDate) : null;
+  const reminderTimeIso = note.reminderTime ? (typeof note.reminderTime === 'number' ? new Date(note.reminderTime).toISOString() : note.reminderTime) : null;
+
+  // Clean payload
+  const { audioUrl, audioBase64, recordingUrl, storageRef, ...cleanNote } = note as any;
+
   await setDoc(docRef, {
-    ...note,
+    ...cleanNote,
+    dueDate: dueDateIso,
+    reminderTime: reminderTimeIso,
     userId: auth.currentUser.uid,
     createdAt: now,
     updatedAt: now,

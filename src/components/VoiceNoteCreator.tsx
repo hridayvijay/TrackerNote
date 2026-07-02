@@ -32,6 +32,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [interimText, setInterimText] = useState("");
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [transcriptionSupported, setTranscriptionSupported] = useState(true);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -108,10 +109,11 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         return;
       }
 
-      const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
       
-      if (SpeechRecognition && !isFirefox) {
+      if (!SpeechRecognition) {
+        setTranscriptionSupported(false);
+      } else {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
@@ -120,7 +122,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         finalTranscriptRef.current = '';
         
         recognition.onresult = (event: any) => {
-          console.log("SR result", event.results[event.resultIndex][0].transcript);
           let interim = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             const t = event.results[i][0].transcript;
@@ -144,10 +145,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         
         recognition.start();
         recognitionRef.current = recognition;
-      } else if (isFirefox) {
-        setInterimText("Live transcription is not available in Firefox. Your voice note will still be transcribed by AI after recording.");
-      } else {
-        setInterimText("Live transcription is not supported in this browser. Keep speaking, the audio will still be parsed!");
       }
 
       let options: any = { audioBitsPerSecond: 32000 };
@@ -391,6 +388,12 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
               audioStream={audioStream}
             />
           </div>
+          
+          {!transcriptionSupported && (
+            <div className="mt-4 text-xs font-medium text-[var(--theme-text-muted)] text-center px-4">
+              Live preview unavailable in this browser — your note will still be transcribed after recording.
+            </div>
+          )}
           
         </div>
       )}

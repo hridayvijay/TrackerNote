@@ -137,7 +137,7 @@ export default function KineticTranscription({ transcript, isRecording }: Kineti
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
           className="absolute bottom-full mb-8 z-50 pointer-events-none"
-          style={{ width: "min(280px, 90vw)", left: "50%", transform: "translateX(-50%)" }}
+          style={{ width: "min(280px, 90vw)", left: "50%", transform: "translateX(-50%)", zIndex: 50 }}
         >
           <div 
             ref={containerRef}

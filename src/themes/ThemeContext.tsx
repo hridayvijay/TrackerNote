@@ -7,6 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 export interface ThemeContextType {
   themeId: ThemeId;
   mode: ThemeMode;
+  orbColors: [string, string, string, string];
   setTheme: (id: ThemeId) => void;
   toggleMode: () => void;
 }
@@ -49,6 +50,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeId, setThemeId] = useState<ThemeId>("cosmic");
   const [mode, setMode] = useState<ThemeMode>("dark");
   const [userUid, setUserUid] = useState<string | null>(null);
+  const [customOrbColors, setCustomOrbColors] = useState<[string, string, string, string] | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -73,6 +75,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         if (data.themeMode === "light" || data.themeMode === "dark") {
           setMode(data.themeMode as ThemeMode);
         }
+        if (data.customOrbColors && Array.isArray(data.customOrbColors) && data.customOrbColors.length === 4) {
+          setCustomOrbColors(data.customOrbColors as [string, string, string, string]);
+        } else {
+          setCustomOrbColors(null);
+        }
+      } else {
+        setCustomOrbColors(null);
       }
     });
 
@@ -82,6 +91,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     injectThemeVars(themeId, mode);
   }, [themeId, mode]);
+
+  const orbColors = customOrbColors || THEMES[themeId][mode].orb;
 
   const updateFirestore = async (newThemeId: ThemeId, newMode: ThemeMode) => {
     if (!userUid) return;
@@ -105,7 +116,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ThemeContext.Provider value={{ themeId, mode, setTheme: handleSetTheme, toggleMode: handleToggleMode }}>
+    <ThemeContext.Provider value={{ themeId, mode, orbColors, setTheme: handleSetTheme, toggleMode: handleToggleMode }}>
       {children}
     </ThemeContext.Provider>
   );
