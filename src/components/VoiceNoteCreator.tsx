@@ -276,12 +276,12 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         {errorType === "no-key" && (
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="mb-4 bg-slate-800/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-lg max-w-sm text-center"
+            className="mb-4 bg-[var(--theme-bg-secondary)]/80 backdrop-blur-md border border-[var(--theme-border)] p-4 rounded-xl shadow-lg max-w-sm text-center"
           >
             <AlertCircle className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
             <p className="text-slate-200 text-sm mb-3">Set up your Gemini key in Account Settings to use Voice Notes.</p>
             {onGoToSettings && (
-              <button onClick={onGoToSettings} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <button onClick={onGoToSettings} className="bg-[var(--theme-accent)] hover:bg-[var(--theme-accent)] text-[var(--theme-text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Go to Settings
               </button>
             )}
@@ -291,11 +291,11 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         {errorType === "permission" && (
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="mb-4 bg-slate-800/80 backdrop-blur-md border border-red-500/30 p-4 rounded-xl shadow-lg max-w-sm text-center"
+            className="mb-4 bg-[var(--theme-bg-secondary)]/80 backdrop-blur-md border border-red-500/30 p-4 rounded-xl shadow-lg max-w-sm text-center"
           >
             <AlertCircle className="w-6 h-6 text-red-500 mx-auto mb-2" />
             <p className="text-slate-200 text-sm mb-3">Microphone access is needed to record voice notes.</p>
-            <button onClick={() => setErrorType("none")} className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <button onClick={() => setErrorType("none")} className="bg-slate-700 hover:bg-slate-600 text-[var(--theme-text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               Dismiss
             </button>
           </motion.div>
@@ -304,10 +304,10 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         {errorType === "api" && (
           <motion.div
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="mb-4 bg-slate-800/80 backdrop-blur-md border border-red-500/30 p-4 rounded-xl shadow-lg max-w-sm text-center"
+            className="mb-4 bg-[var(--theme-bg-secondary)]/80 backdrop-blur-md border border-red-500/30 p-4 rounded-xl shadow-lg max-w-sm text-center"
           >
             <p className="text-red-400 text-sm mb-3 font-medium">{errorMessage}</p>
-            <button onClick={() => setErrorType("none")} className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <button onClick={() => setErrorType("none")} className="bg-slate-700 hover:bg-slate-600 text-[var(--theme-text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               Try again
             </button>
           </motion.div>
@@ -316,10 +316,10 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         {errorType === "size" && (
            <motion.div
            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-           className="mb-4 bg-slate-800/80 backdrop-blur-md border border-red-500/30 p-4 rounded-xl shadow-lg max-w-sm text-center"
+           className="mb-4 bg-[var(--theme-bg-secondary)]/80 backdrop-blur-md border border-red-500/30 p-4 rounded-xl shadow-lg max-w-sm text-center"
          >
            <p className="text-red-400 text-sm mb-3 font-medium">{errorMessage}</p>
-           <button onClick={() => setErrorType("none")} className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+           <button onClick={() => setErrorType("none")} className="bg-slate-700 hover:bg-slate-600 text-[var(--theme-text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
              Dismiss
            </button>
          </motion.div>
@@ -338,14 +338,14 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                className="absolute bottom-full mb-[5.5rem] flex flex-col items-center bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl w-[260px]"
+                className="absolute bottom-full mb-[5.5rem] flex flex-col items-center bg-[var(--theme-bg-primary)]/90 backdrop-blur-xl border border-[var(--theme-border)]/50 rounded-2xl p-4 shadow-2xl w-[260px]"
               >
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center space-x-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-xs font-semibold tracking-wider text-slate-300 uppercase">Recording</span>
+                    <span className="text-xs font-semibold tracking-wider text-[var(--theme-text-primary)] uppercase">Recording</span>
                   </div>
-                  <span className="font-mono text-sm font-medium text-slate-300 bg-slate-800/50 px-2 py-0.5 rounded">
+                  <span className="font-mono text-sm font-medium text-[var(--theme-text-primary)] bg-[var(--theme-bg-secondary)]/50 px-2 py-0.5 rounded">
                     {formatTime(recordingSeconds)}
                   </span>
                 </div>
@@ -357,11 +357,11 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
             {isParsing && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="absolute bottom-full mb-6 flex flex-col items-center bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl w-[260px]"
+                className="absolute bottom-full mb-6 flex flex-col items-center bg-[var(--theme-bg-primary)]/90 backdrop-blur-xl border border-[var(--theme-border)]/50 rounded-2xl p-4 shadow-2xl w-[260px]"
               >
                 <div className="flex items-center space-x-2">
-                  <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
-                  <span className="text-xs text-slate-300 font-medium tracking-wide">Parsing your note...</span>
+                  <Loader2 className="w-5 h-5 text-[var(--theme-accent-text)] animate-spin" />
+                  <span className="text-xs text-[var(--theme-text-primary)] font-medium tracking-wide">Parsing your note...</span>
                 </div>
               </motion.div>
             )}

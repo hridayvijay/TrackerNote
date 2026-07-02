@@ -161,9 +161,15 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
         };
 
         const time = Date.now() / 150;
-        drawWave(time, 0.8, "rgba(59,130,246, 0.8)");
-        drawWave(time + 2, 0.6, "rgba(139,92,246, 0.8)");
-        drawWave(time + 4, 0.7, "rgba(236,72,153, 0.8)");
+        // We can get CSS vars using getComputedStyle
+        const styles = getComputedStyle(document.documentElement);
+        const c1 = styles.getPropertyValue('--theme-orb-1') || 'rgba(59,130,246,0.8)';
+        const c2 = styles.getPropertyValue('--theme-orb-2') || 'rgba(139,92,246,0.8)';
+        const c3 = styles.getPropertyValue('--theme-orb-3') || 'rgba(236,72,153,0.8)';
+        
+        drawWave(time, 0.8, c1);
+        drawWave(time + 2, 0.6, c2);
+        drawWave(time + 4, 0.7, c3);
       };
       
       draw();
@@ -318,13 +324,13 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
 
   return (
     <div className="glass-panel w-full max-w-xl mx-auto rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/20 dark:border-slate-800/50 bg-white/30 dark:bg-slate-900/40">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/20 border-[var(--theme-border)]/50 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/40">
         <h3 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
           {note ? "Edit Note" : "Add Note to Project"}
         </h3>
         <button
           onClick={onClose}
-          className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 p-1.5 rounded-full transition-colors"
+          className="text-[var(--theme-text-secondary)] hover:text-slate-800 dark:hover:text-slate-100 p-1.5 rounded-full transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -340,7 +346,7 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
         <div className="space-y-5">
           <div className="relative group">
             <textarea
-              className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md rounded-2xl border border-white/40 dark:border-slate-700/50 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-400 dark:text-slate-100 resize-none text-base min-h-[120px] p-4 shadow-inner transition-all hover:bg-white/70 dark:hover:bg-slate-800/70"
+              className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md rounded-2xl border border-white/40 dark:border-[var(--theme-border)]/50 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 placeholder:text-[var(--theme-text-muted)] text-[var(--theme-text-primary)] resize-none text-base min-h-[120px] p-4 shadow-inner transition-all hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-secondary)]/70"
               placeholder="Jot down a task or record a voice note..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -348,13 +354,13 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
               autoFocus
             />
             {isRecording && (
-              <div className="absolute inset-x-2 bottom-3 mx-auto max-w-[90%] rounded-xl bg-slate-900/90 backdrop-blur-xl p-3 border border-slate-700 shadow-lg animate-in slide-in-from-bottom-2 flex flex-col items-center">
+              <div className="absolute inset-x-2 bottom-3 mx-auto max-w-[90%] rounded-xl bg-[var(--theme-bg-primary)]/90 backdrop-blur-xl p-3 border border-[var(--theme-border)] shadow-lg animate-in slide-in-from-bottom-2 flex flex-col items-center">
                 <canvas ref={canvasRef} width="200" height="40" className="w-full max-w-[200px] h-10 mb-2" />
                 <p className="font-semibold text-blue-400 flex items-center mb-1 text-xs uppercase tracking-wider">
                   <span className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-ping" />
                   Listening...
                 </p>
-                <p className="text-slate-300 italic line-clamp-2 text-sm font-medium text-center">
+                <p className="text-[var(--theme-text-primary)] italic line-clamp-2 text-sm font-medium text-center">
                   "{transcription || "..."}"
                 </p>
               </div>
@@ -385,13 +391,13 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
             </div>
 
             {audioData && (
-              <div className="flex items-center bg-emerald-50/80 text-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-200/50 text-xs font-bold shadow-sm backdrop-blur-md">
+              <div className="flex items-center bg-[var(--theme-bg-secondary)] text-[var(--theme-accent-text)] px-2.5 py-1 rounded-lg border border-emerald-200/50 text-xs font-bold shadow-sm backdrop-blur-md">
                 <Music className="w-3.5 h-3.5 mr-1.5 opacity-80" />
                 Audio Attached
                 <button
                   type="button"
                   onClick={() => setAudioData(null)}
-                  className="ml-2 p-0.5 hover:bg-emerald-200/50 rounded-md transition-colors"
+                  className="ml-2 p-0.5 hover:bg-[var(--theme-bg-secondary)] rounded-md transition-colors"
                 >
                   <CircleSlash className="w-3.5 h-3.5" />
                 </button>
@@ -400,7 +406,7 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
           </div>
 
           {audioData && (
-            <div className="animate-in fade-in p-1 rounded-full bg-white/50 border border-white/30 shadow-sm backdrop-blur-md">
+            <div className="animate-in fade-in p-1 rounded-full bg-[var(--theme-bg-card)] border border-white/30 shadow-sm backdrop-blur-md">
               <audio
                 src={audioData}
                 controls
@@ -409,38 +415,38 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/20 dark:border-slate-800/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/20 border-[var(--theme-border)]/50">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+              <label className="block text-xs font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-1.5 flex items-center">
                 <Clock className="w-3.5 h-3.5 mr-1 opacity-70" />
                 Original Date / Due
               </label>
               <input
                 type="datetime-local"
-                className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-sm font-medium shadow-inner transition-colors"
+                className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-3 py-2 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-sm font-medium shadow-inner transition-colors"
                 value={dueDateStr}
                 onChange={(e) => setDueDateStr(e.target.value)}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+              <label className="block text-xs font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-1.5 flex items-center">
                 <Clock className="w-3.5 h-3.5 mr-1 opacity-70" />
                 Reminder
               </label>
               <input
                 type="datetime-local"
-                className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-sm font-medium shadow-inner transition-colors"
+                className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-3 py-2 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 text-sm font-medium shadow-inner transition-colors"
                 value={reminderStr}
                 onChange={(e) => setReminderStr(e.target.value)}
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-1.5">
                 Frequency
               </label>
-              <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1">
+              <div className="flex bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl p-1">
                 {(["Never", "Once", "Daily", "Weekly"] as const).map((f) => (
                   <button
                     key={f}
@@ -448,8 +454,8 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
                     onClick={() => setFrequency(f)}
                     className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
                       frequency === f
-                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                        ? "bg-[var(--theme-bg-card)] dark:bg-slate-700 text-[var(--theme-accent-text)] text-[var(--theme-accent-text)] shadow-sm"
+                        : "text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] dark:hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-secondary)]/50"
                     }`}
                   >
                     {f === "Never" ? "None" : f}
@@ -459,10 +465,10 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-1.5">
                 Priority
               </label>
-              <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1">
+              <div className="flex bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl p-1">
                 {(["Low", "Medium", "High"] as const).map((p) => (
                   <button
                     key={p}
@@ -470,8 +476,8 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
                     onClick={() => setPriority(p)}
                     className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
                       priority === p
-                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                        ? "bg-[var(--theme-bg-card)] dark:bg-slate-700 text-[var(--theme-accent-text)] text-[var(--theme-accent-text)] shadow-sm"
+                        : "text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] dark:hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-secondary)]/50"
                     }`}
                   >
                     {p}
@@ -483,7 +489,7 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
         </div>
 
         <div className="mt-6 flex items-center justify-between">
-          <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1 w-40">
+          <div className="flex bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl p-1 w-40">
             {(["Pending", "Done"] as const).map((s) => (
               <button
                 key={s}
@@ -492,9 +498,9 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
                 className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
                   status === s
                     ? s === "Done"
-                      ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-sm"
-                      : "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                      ? "bg-emerald-100 text-[var(--theme-accent-text)] dark:text-[var(--theme-accent-text)] shadow-sm"
+                      : "bg-[var(--theme-bg-card)] dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] dark:hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-secondary)]/50"
                 }`}
               >
                 {s}
@@ -506,14 +512,14 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-1.5 text-sm font-bold rounded-xl text-slate-600 bg-white/50 hover:bg-white/80 border border-white/50 focus:outline-none transition-colors backdrop-blur-md shadow-sm"
+              className="px-4 py-1.5 text-sm font-bold rounded-xl text-[var(--theme-text-secondary)] bg-[var(--theme-bg-card)] hover:bg-[var(--theme-bg-card)] border border-white/50 focus:outline-none transition-colors backdrop-blur-md shadow-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center px-5 py-1.5 shadow-lg shadow-blue-500/30 text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-all disabled:opacity-50"
+              className="inline-flex items-center px-5 py-1.5 shadow-lg shadow-blue-500/30 text-sm font-bold rounded-xl text-[var(--theme-text-primary)] bg-blue-600 hover:bg-blue-700 focus:outline-none transition-all disabled:opacity-50"
             >
               {loading ? (
                 "Saving..."

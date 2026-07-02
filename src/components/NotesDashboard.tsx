@@ -62,7 +62,7 @@ export default function NotesDashboard({ user }: { user: User }) {
       return (
         <span className="flex items-center space-x-1">
           <span>{name}</span>
-          <span className="text-slate-400 font-normal text-sm lowercase">@{matchingUsers[0].username}</span>
+          <span className="text-[var(--theme-text-muted)] font-normal text-sm lowercase">@{matchingUsers[0].username}</span>
         </span>
       );
     }
@@ -242,12 +242,12 @@ export default function NotesDashboard({ user }: { user: User }) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
         <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
           <h2 className="text-2xl font-bold tracking-tight flex items-center">
-            <LayoutDashboard className="w-6 h-6 mr-2 text-indigo-600 dark:text-indigo-400" />
+            <LayoutDashboard className="w-6 h-6 mr-2 text-[var(--theme-accent-text)] text-[var(--theme-accent-text)]" />
             Assignee Dashboard
           </h2>
           
           {isOnline ? (
-            <div className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 rounded-full select-none" title="All changes are fully synchronized to the cloud and across devices">
+            <div className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold text-[var(--theme-accent-text)] dark:text-[var(--theme-accent-text)] bg-[var(--theme-bg-secondary)] border border-emerald-500/25 rounded-full select-none" title="All changes are fully synchronized to the cloud and across devices">
               <Wifi className="w-3.5 h-3.5 mr-1" />
               <span>Synced & Live</span>
             </div>
@@ -261,7 +261,7 @@ export default function NotesDashboard({ user }: { user: User }) {
 
         <button
           onClick={() => setProjectFormProps({ open: true })}
-          className="flex items-center justify-center bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all active:scale-95"
+          className="flex items-center justify-center bg-[var(--theme-accent)] text-[var(--theme-text-primary)] px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[var(--theme-accent)] shadow-lg shadow-indigo-500/30 transition-all active:scale-95"
         >
           <Plus className="w-5 h-5 mr-1.5" />
           New Project
@@ -269,7 +269,7 @@ export default function NotesDashboard({ user }: { user: User }) {
       </div>
 
       {allUpcomingReminders.length > 0 && (
-        <div className="mb-6 bg-slate-900/5 dark:bg-slate-100/5 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center shadow-inner">
+        <div className="mb-6 bg-[var(--theme-bg-primary)]/5 dark:bg-slate-100/5 border border-[var(--theme-border)] border-[var(--theme-border)] rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center shadow-inner">
           <div className="flex items-center text-amber-600 dark:text-amber-500 font-bold shrink-0">
             <AlertCircle className="w-5 h-5 mr-2" />
             Upcoming Overview
@@ -280,7 +280,7 @@ export default function NotesDashboard({ user }: { user: User }) {
               return (
                 <div
                   key={rem.id}
-                  className="min-w-[200px] shrink-0 snap-end bg-white/70 dark:bg-slate-800/80 backdrop-blur-md px-3 py-2 rounded-xl border border-white/50 dark:border-slate-700/50 shadow-sm flex flex-col cursor-pointer transition-colors hover:bg-white dark:hover:bg-slate-800 text-xs"
+                  className="min-w-[200px] shrink-0 snap-end bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-secondary)]/80 backdrop-blur-md px-3 py-2 rounded-xl border border-white/50 dark:border-[var(--theme-border)]/50 shadow-sm flex flex-col cursor-pointer transition-colors hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-secondary)] text-xs"
                   onClick={() =>
                     setNoteFormProps({
                       open: true,
@@ -289,10 +289,10 @@ export default function NotesDashboard({ user }: { user: User }) {
                     })
                   }
                 >
-                  <span className="font-bold text-slate-800 dark:text-slate-100 truncate">
+                  <span className="font-bold text-slate-800 text-[var(--theme-text-primary)] truncate">
                     {rem.content}
                   </span>
-                  <div className="flex justify-between items-center mt-1.5 space-x-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  <div className="flex justify-between items-center mt-1.5 space-x-2 text-[10px] text-[var(--theme-text-secondary)] font-bold uppercase tracking-wider">
                     <span className="truncate">
                       {project?.title || "Unknown"}
                     </span>
@@ -316,7 +316,7 @@ export default function NotesDashboard({ user }: { user: User }) {
 
       {/* Forms absolute overlay */}
       {projectFormProps.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--theme-bg-primary)]/50 backdrop-blur-sm p-4">
           <ProjectForm
             project={projectFormProps.project}
             onClose={() => setProjectFormProps({ open: false, project: null })}
@@ -325,7 +325,7 @@ export default function NotesDashboard({ user }: { user: User }) {
       )}
 
       {noteFormProps.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--theme-bg-primary)]/50 backdrop-blur-sm p-4">
           <NoteForm
             projectId={noteFormProps.projectId}
             note={noteFormProps.note}
@@ -338,11 +338,11 @@ export default function NotesDashboard({ user }: { user: User }) {
       <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
         {projects.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center glass-panel rounded-3xl mx-auto max-w-lg mt-10 p-10">
-            <div className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mb-6">
-              <Users className="w-10 h-10 text-indigo-500" />
+            <div className="w-20 h-20 bg-[var(--theme-accent)] dark:bg-[var(--theme-accent)]/50 rounded-full flex items-center justify-center mb-6">
+              <Users className="w-10 h-10 text-[var(--theme-accent-text)]" />
             </div>
             <h3 className="text-xl font-bold mb-2">No projects yet</h3>
-            <p className="text-slate-500 dark:text-slate-400 font-medium mb-6">
+            <p className="text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] font-medium mb-6">
               Create a project to start organizing stakeholder notes and tasks.
             </p>
           </div>
@@ -357,27 +357,27 @@ export default function NotesDashboard({ user }: { user: User }) {
                 exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)", transition: { duration: 0.2 } }}
                 transition={{ duration: 0.4, delay: colIndex * 0.08, ease: "easeOut" }}
                 key={assignee}
-                className="min-w-[340px] max-w-[340px] shrink-0 snap-center flex flex-col h-full bg-slate-200/30 dark:bg-slate-800/20 backdrop-blur-lg border border-slate-300/40 dark:border-slate-700/50 rounded-3xl p-4 transition-colors hover:bg-slate-200/50 dark:hover:bg-slate-800/40"
+                className="min-w-[340px] max-w-[340px] shrink-0 snap-center flex flex-col h-full bg-slate-200/30 dark:bg-[var(--theme-bg-secondary)]/20 backdrop-blur-lg border border-slate-300/40 dark:border-[var(--theme-border)]/50 rounded-3xl p-4 transition-colors hover:bg-slate-200/50 dark:hover:bg-[var(--theme-bg-secondary)]/40"
                 onDragOver={(e: any) => e.preventDefault()}
                 onDrop={(e: any) => handleDropProject(e, assignee)}
               >
                 <div className="flex items-center mb-5 px-1">
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-full flex items-center justify-center shadow-md mr-3 shrink-0 text-white font-bold text-sm">
+                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-full flex items-center justify-center shadow-md mr-3 shrink-0 text-[var(--theme-text-primary)] font-bold text-sm">
                     {assignee.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1 flex items-center justify-between space-x-2">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate tracking-tight flex items-center gap-1">
+                      <h3 className="text-lg font-bold text-[var(--theme-accent-text)] truncate tracking-tight flex items-center gap-1">
                         {renderDisplayName(assignee)}
                       </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                      <p className="text-xs text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] font-bold uppercase tracking-wider">
                         {assigneeProjects.length} Projects
                       </p>
                     </div>
                     {assigneeProjects.length === 0 && assignee !== 'Unassigned' && (
                       <button
                         onClick={() => handleDeleteAssigneeCategory(assignee)}
-                        className="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/40 p-2 rounded-xl transition-colors shrink-0"
+                        className="text-[var(--theme-text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/40 p-2 rounded-xl transition-colors shrink-0"
                         title="Remove category"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -437,7 +437,7 @@ export default function NotesDashboard({ user }: { user: User }) {
 
       {projectFormProps.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setProjectFormProps({ open: false, project: null })} />
+          <div className="absolute inset-0 bg-[var(--theme-bg-primary)]/40 backdrop-blur-sm" onClick={() => setProjectFormProps({ open: false, project: null })} />
           <div className="relative w-full max-w-xl">
             <ProjectForm
               project={projectFormProps.project}
@@ -449,7 +449,7 @@ export default function NotesDashboard({ user }: { user: User }) {
 
       {noteFormProps.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setNoteFormProps({ open: false, projectId: "" })} />
+          <div className="absolute inset-0 bg-[var(--theme-bg-primary)]/40 backdrop-blur-sm" onClick={() => setNoteFormProps({ open: false, projectId: "" })} />
           <div className="relative w-full max-w-xl">
             <NoteForm
               projectId={noteFormProps.projectId}

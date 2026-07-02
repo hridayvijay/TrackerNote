@@ -150,25 +150,25 @@ export default function ReminderSystem({ notes }: { notes: SyncNote[] }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-900/90 backdrop-blur-md"
+            className="absolute inset-0 bg-[var(--theme-bg-primary)]/90 backdrop-blur-md"
             // No onClick close!
           />
           <motion.div
             initial={{ scale: 0.8, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
-            className="relative w-full max-w-lg bg-slate-900 border border-indigo-500/50 shadow-[0_0_50px_rgba(99,102,241,0.2)] rounded-3xl p-8"
+            className="relative w-full max-w-lg bg-[var(--theme-bg-primary)] border border-indigo-500/50 shadow-[0_0_50px_var(--theme-accent)] rounded-3xl p-8"
           >
             <div className="flex flex-col items-center text-center space-y-6">
-              <div className="w-16 h-16 bg-indigo-500/20 rounded-full flex items-center justify-center animate-pulse">
+              <div className="w-16 h-16 bg-[var(--theme-accent)]/20 rounded-full flex items-center justify-center animate-pulse">
                 <AlertCircle className="w-8 h-8 text-indigo-400" />
               </div>
               
               <div>
-                <h2 className="text-3xl font-black tracking-tight text-white mb-2">
+                <h2 className="text-3xl font-black tracking-tight text-[var(--theme-text-primary)] mb-2">
                   {activeReminder.reminderText || "Reminder"}
                 </h2>
-                <p className="text-slate-300 text-lg">
+                <p className="text-[var(--theme-text-primary)] text-lg">
                   {activeReminder.content.replace("[AI Extracted] ", "")}
                 </p>
               </div>
@@ -177,7 +177,7 @@ export default function ReminderSystem({ notes }: { notes: SyncNote[] }) {
                 <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${
                   activeReminder.priority === "High" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
                   activeReminder.priority === "Medium" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
-                  "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  "bg-[var(--theme-bg-secondary)] text-[var(--theme-accent-text)] border border-emerald-500/30"
                 }`}>
                   {activeReminder.priority} Priority
                 </div>
@@ -186,14 +186,14 @@ export default function ReminderSystem({ notes }: { notes: SyncNote[] }) {
               <div className="grid grid-cols-2 gap-4 w-full pt-4">
                 <button
                   onClick={handleSnooze}
-                  className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors border border-slate-700 flex items-center justify-center"
+                  className="w-full py-4 bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] font-bold rounded-xl transition-colors border border-[var(--theme-border)] flex items-center justify-center"
                 >
-                  <Clock className="w-5 h-5 mr-2 text-slate-400" />
+                  <Clock className="w-5 h-5 mr-2 text-[var(--theme-text-muted)]" />
                   Snooze 10 min
                 </button>
                 <button
                   onClick={handleMarkDone}
-                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center"
+                  className="w-full py-4 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent)] text-[var(--theme-text-primary)] font-bold rounded-xl transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center"
                 >
                   <CheckCircle2 className="w-5 h-5 mr-2" />
                   Mark Done

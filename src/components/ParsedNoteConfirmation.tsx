@@ -156,7 +156,7 @@ export default function ParsedNoteConfirmation({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-[var(--theme-bg-primary)]/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -164,19 +164,19 @@ export default function ParsedNoteConfirmation({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg bg-slate-900/95 backdrop-blur-xl border border-slate-700 rounded-3xl p-6 shadow-2xl overflow-y-auto max-h-[90vh] scrollbar-thin scrollbar-thumb-slate-700"
+        className="relative w-full max-w-lg bg-[var(--theme-bg-primary)]/95 backdrop-blur-xl border border-[var(--theme-border)] rounded-3xl p-6 shadow-2xl overflow-y-auto max-h-[90vh] scrollbar-thin scrollbar-thumb-slate-700"
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white tracking-tight">Review AI Note</h2>
+          <h2 className="text-xl font-bold text-[var(--theme-text-primary)] tracking-tight">Review AI Note</h2>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-slate-800"
+            className="p-2 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors rounded-full hover:bg-[var(--theme-bg-secondary)]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="mb-6 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-medium text-sm leading-relaxed">
+        <div className="mb-6 p-4 rounded-xl bg-[var(--theme-accent)]/10 border border-indigo-500/20 text-indigo-300 font-medium text-sm leading-relaxed">
           {summaryBanner}
         </div>
 
@@ -188,7 +188,7 @@ export default function ParsedNoteConfirmation({
         )}
 
         {success && (
-          <div className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm p-3 rounded-xl flex items-center justify-center font-medium">
+          <div className="mb-4 bg-[var(--theme-bg-secondary)] border border-emerald-500/20 text-[var(--theme-accent-text)] text-sm p-3 rounded-xl flex items-center justify-center font-medium">
             Saved successfully!
           </div>
         )}
@@ -211,7 +211,7 @@ export default function ParsedNoteConfirmation({
                   setStakeholder(originalStakeholder);
                   setShowMatchWarning(false);
                 }}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium py-2 px-3 rounded-lg transition-colors border border-slate-700"
+                className="flex-1 bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] text-xs font-medium py-2 px-3 rounded-lg transition-colors border border-[var(--theme-border)]"
               >
                 No, use new stakeholder
               </button>
@@ -221,75 +221,75 @@ export default function ParsedNoteConfirmation({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-1.5">
               Stakeholder
             </label>
             <input
               type="text"
               value={stakeholder}
               onChange={(e) => setStakeholder(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full bg-[var(--theme-bg-secondary)]/50 border border-[var(--theme-border)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-1.5">
               Project
             </label>
             <input
               type="text"
               value={project}
               onChange={(e) => setProject(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full bg-[var(--theme-bg-secondary)]/50 border border-[var(--theme-border)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-1.5">
               Note Content
             </label>
             <textarea
               value={noteContent}
               onChange={(e) => setNoteContent(e.target.value)}
               rows={3}
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none scrollbar-thin"
+              className="w-full bg-[var(--theme-bg-secondary)]/50 border border-[var(--theme-border)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none scrollbar-thin"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-1.5">
                 Due Date
               </label>
               <input
                 type="datetime-local"
                 value={dueDateStr}
                 onChange={(e) => setDueDateStr(e.target.value)}
-                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all [color-scheme:dark]"
+                className="w-full bg-[var(--theme-bg-secondary)]/50 border border-[var(--theme-border)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all [color-scheme:dark]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-1.5">
                 Reminder Date
               </label>
               <input
                 type="datetime-local"
                 value={reminderStr}
                 onChange={(e) => setReminderStr(e.target.value)}
-                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all [color-scheme:dark]"
+                className="w-full bg-[var(--theme-bg-secondary)]/50 border border-[var(--theme-border)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all [color-scheme:dark]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-1.5">
                 Priority
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as NotePriority)}
-                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+                className="w-full bg-[var(--theme-bg-secondary)]/50 border border-[var(--theme-border)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -297,31 +297,31 @@ export default function ParsedNoteConfirmation({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-1.5">
                 Status
               </label>
-              <div className="w-full bg-slate-800/30 border border-slate-700/50 rounded-xl px-4 py-2.5 text-slate-400 flex items-center cursor-not-allowed">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 mr-2" />
+              <div className="w-full bg-[var(--theme-bg-secondary)]/30 border border-[var(--theme-border)]/50 rounded-xl px-4 py-2.5 text-[var(--theme-text-muted)] flex items-center cursor-not-allowed">
+                <span className="w-2 h-2 rounded-full bg-[var(--theme-accent)] mr-2" />
                 Pending
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-1.5">
               Reminder Text
             </label>
             <input
               type="text"
               value={reminderText}
               onChange={(e) => setReminderText(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+              className="w-full bg-[var(--theme-bg-secondary)]/50 border border-[var(--theme-border)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-1.5">
                 Times Per Day
               </label>
               <input
@@ -330,13 +330,13 @@ export default function ParsedNoteConfirmation({
                 max={24}
                 value={timesPerDay}
                 onChange={(e) => setTimesPerDay(parseInt(e.target.value) || 1)}
-                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="w-full bg-[var(--theme-bg-secondary)]/50 border border-[var(--theme-border)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-[var(--theme-text-muted)] uppercase tracking-wider mb-2">
               Days of Week
             </label>
             <div className="flex flex-wrap gap-2">
@@ -347,15 +347,15 @@ export default function ParsedNoteConfirmation({
                   onClick={() => toggleDay(day)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
                     daysOfWeek.includes(day)
-                      ? "bg-indigo-500/20 border-indigo-500 text-indigo-400"
-                      : "bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-700"
+                      ? "bg-[var(--theme-accent)]/20 border-indigo-500 text-indigo-400"
+                      : "bg-[var(--theme-bg-secondary)]/50 border-[var(--theme-border)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-bg-card-hover)]"
                   }`}
                 >
                   {day}
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 mt-1.5">
+            <p className="text-[10px] text-[var(--theme-text-secondary)] mt-1.5">
               Leave empty to select every day.
             </p>
           </div>
@@ -365,7 +365,7 @@ export default function ParsedNoteConfirmation({
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center border border-slate-700 disabled:opacity-50"
+            className="flex-1 bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center border border-[var(--theme-border)] disabled:opacity-50"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Re-dictate
@@ -373,7 +373,7 @@ export default function ParsedNoteConfirmation({
           <button
             onClick={handleConfirmSave}
             disabled={isSaving}
-            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-indigo-500/25 flex items-center justify-center disabled:opacity-50"
+            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-[var(--theme-text-primary)] font-semibold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-indigo-500/25 flex items-center justify-center disabled:opacity-50"
           >
             {isSaving ? (
               <Loader2 className="w-5 h-5 animate-spin" />

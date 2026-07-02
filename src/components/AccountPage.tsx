@@ -86,6 +86,11 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
   const [testingGeminiKey, setTestingGeminiKey] = useState(false);
   const [geminiKeyValid, setGeminiKeyValid] = useState<boolean | null>(null);
 
+  // Appearance state
+  const [applyThemeToDeleteUi, setApplyThemeToDeleteUi] = useState(
+    localStorage.getItem("applyThemeToDeleteUi") === "true"
+  );
+
   // Load profile and provider data
   const loadProfileData = async () => {
     try {
@@ -371,16 +376,16 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
       <div className="flex items-center space-x-4 mb-8">
         <button
           onClick={onBack}
-          className="p-2.5 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all flex items-center justify-center"
+          className="p-2.5 rounded-xl text-[var(--theme-text-secondary)] hover:text-slate-800 text-[var(--theme-text-secondary)] dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-[var(--theme-bg-secondary)]/50 transition-all flex items-center justify-center"
           title="Back to Dashboard"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
             Account Settings
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)]">
             Configure your authentication, username profile, and login methods
           </p>
         </div>
@@ -390,7 +395,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
         {/* Profile Card & Info */}
         <div className="md:col-span-1 space-y-6">
           <div className="glass-panel p-6 rounded-2xl flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-indigo-500/25 mb-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-full flex items-center justify-center text-[var(--theme-text-primary)] text-2xl font-black shadow-lg shadow-indigo-500/25 mb-4">
               {profile?.username?.charAt(0).toUpperCase() ||
                 user.displayName?.charAt(0).toUpperCase() ||
                 user.email?.charAt(0).toUpperCase() ||
@@ -404,43 +409,43 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
               </div>
             ) : (
               <>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white truncate max-w-full">
+                <h3 className="text-xl font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] truncate max-w-full">
                   {profile?.username || "No Username set"}
                 </h3>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 truncate max-w-full mb-4">
+                <p className="text-sm font-medium text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] truncate max-w-full mb-4">
                   {user.email}
                 </p>
 
-                <div className="w-full pt-4 border-t border-slate-200 dark:border-slate-800/80 text-left space-y-3">
-                  <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block">
+                <div className="w-full pt-4 border-t border-[var(--theme-border)] border-[var(--theme-border)]/80 text-left space-y-3">
+                  <span className="text-xs uppercase tracking-wider text-[var(--theme-text-muted)] font-bold block">
                     Authed Methods
                   </span>
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-xs font-semibold bg-white/40 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center justify-between text-xs font-semibold bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-secondary)]/40 p-2.5 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)]">
                       <div className="flex items-center space-x-2">
                         <Chrome className="w-4 h-4 text-blue-500" />
                         <span>Google Auth</span>
                       </div>
                       {isGoogleLinked ? (
-                        <span className="text-emerald-500 flex items-center">
+                        <span className="text-[var(--theme-accent-text)] flex items-center">
                           <Check className="w-3.5 h-3.5 mr-1" /> Linked
                         </span>
                       ) : (
-                        <span className="text-slate-400">Not Linked</span>
+                        <span className="text-[var(--theme-text-muted)]">Not Linked</span>
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between text-xs font-semibold bg-white/40 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center justify-between text-xs font-semibold bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-secondary)]/40 p-2.5 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)]">
                       <div className="flex items-center space-x-2">
-                        <Lock className="w-4 h-4 text-slate-500" />
+                        <Lock className="w-4 h-4 text-[var(--theme-text-secondary)]" />
                         <span>Email & Password</span>
                       </div>
                       {isEmailLinked ? (
-                        <span className="text-emerald-500 flex items-center">
+                        <span className="text-[var(--theme-accent-text)] flex items-center">
                           <Check className="w-3.5 h-3.5 mr-1" /> Linked
                         </span>
                       ) : (
-                        <span className="text-slate-400">Not Linked</span>
+                        <span className="text-[var(--theme-text-muted)]">Not Linked</span>
                       )}
                     </div>
                   </div>
@@ -471,11 +476,11 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
           {/* 1. Profile Username Settings */}
           <div className="glass-panel p-6 sm:p-8 rounded-3xl space-y-6">
             <div>
-              <h2 className="text-xl font-bold flex items-center text-slate-900 dark:text-white">
-                <Shield className="w-5 h-5 mr-2 text-indigo-500" />
+              <h2 className="text-xl font-bold flex items-center text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
+                <Shield className="w-5 h-5 mr-2 text-[var(--theme-accent-text)]" />
                 Change Username Profile
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] mt-1">
                 This updates your master identity saved in Firestore across
                 TrackerNote.
               </p>
@@ -488,11 +493,11 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
             ) : (
               <form onSubmit={handleChangeUsername} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="text-sm font-semibold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)]">
                     Username
                   </label>
                   <div className="relative">
-                    <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-muted)]" />
                     <input
                       type="text"
                       value={newUsername}
@@ -500,16 +505,16 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                         setNewUsername(cleanUsernameString(e.target.value))
                       }
                       placeholder="Enter new username"
-                      className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white/50 dark:bg-slate-900/50"
+                      className="w-full pl-10 pr-10 py-3 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)] focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50"
                       maxLength={30}
                     />
                     <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center">
                       {checkingChangeUsername && (
-                        <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
+                        <RefreshCw className="w-4 h-4 text-[var(--theme-accent-text)] animate-spin" />
                       )}
                       {!checkingChangeUsername &&
                         usernameChangeAvailable === true && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <CheckCircle2 className="w-4 h-4 text-[var(--theme-accent-text)]" />
                         )}
                       {!checkingChangeUsername &&
                         usernameChangeAvailable === false && (
@@ -518,7 +523,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                     </div>
                   </div>
                   {usernameChangeAvailable === true && (
-                    <p className="text-xs text-emerald-500 font-medium">
+                    <p className="text-xs text-[var(--theme-accent-text)] font-medium">
                       ✨ Username is available
                     </p>
                   )}
@@ -536,7 +541,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                 )}
 
                 {usernameChangeSuccess && (
-                  <div className="text-sm font-medium text-emerald-600 bg-emerald-100/50 dark:bg-emerald-900/30 p-3 rounded-xl">
+                  <div className="text-sm font-medium text-[var(--theme-accent-text)] bg-[var(--theme-bg-secondary)] p-3 rounded-xl">
                     {usernameChangeSuccess}
                   </div>
                 )}
@@ -548,7 +553,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                     usernameChangeAvailable === false ||
                     (profile && newUsername === profile.username)
                   }
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[var(--theme-accent)] hover:bg-[var(--theme-accent)] text-[var(--theme-text-primary)] font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submittingChangeUsername ? "Updating..." : "Save Username"}
                 </button>
@@ -560,11 +565,11 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
           {!isEmailLinked && (
             <div className="glass-panel p-6 sm:p-8 rounded-3xl space-y-6">
               <div>
-                <h2 className="text-xl font-bold flex items-center text-slate-900 dark:text-white">
+                <h2 className="text-xl font-bold flex items-center text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
                   <Lock className="w-5 h-5 mr-2 text-cyan-500" />
                   Add Email & Password Login
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-xs text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] mt-1">
                   Unlock logging in with credentials by submitting your
                   credentials below
                 </p>
@@ -573,28 +578,28 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
               <form onSubmit={handleLinkEmailPassword} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-semibold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)]">
                       Email Address
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-muted)]" />
                       <input
                         type="email"
                         value={linkEmail}
                         onChange={(e) => setLinkEmail(e.target.value)}
                         placeholder="your@email.com"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white/50 dark:bg-slate-900/50"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)] focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50"
                         required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-semibold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)]">
                       Chosen Username
                     </label>
                     <div className="relative">
-                      <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-muted)]" />
                       <input
                         type="text"
                         value={linkUsername}
@@ -602,15 +607,15 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                           setLinkUsername(cleanUsernameString(e.target.value))
                         }
                         placeholder="Chosen username"
-                        className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white/50 dark:bg-slate-900/50"
+                        className="w-full pl-10 pr-10 py-3 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)] focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50"
                         required
                       />
                       <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center">
                         {checkingUsername && (
-                          <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
+                          <RefreshCw className="w-4 h-4 text-[var(--theme-accent-text)] animate-spin" />
                         )}
                         {!checkingUsername && usernameAvailable === true && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <CheckCircle2 className="w-4 h-4 text-[var(--theme-accent-text)]" />
                         )}
                         {!checkingUsername && usernameAvailable === false && (
                           <XCircle className="w-4 h-4 text-red-500" />
@@ -618,7 +623,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                       </div>
                     </div>
                     {usernameAvailable === true && (
-                      <p className="text-xs text-emerald-500 font-medium">
+                      <p className="text-xs text-[var(--theme-accent-text)] font-medium">
                         ✨ Username is available
                       </p>
                     )}
@@ -631,17 +636,17 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="text-sm font-semibold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)]">
                     Secure Password
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-muted)]" />
                     <input
                       type="password"
                       value={linkPassword}
                       onChange={(e) => setLinkPassword(e.target.value)}
                       placeholder="Minimum 6 characters"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white/50 dark:bg-slate-900/50"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)] focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50"
                       required
                     />
                   </div>
@@ -654,7 +659,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                 )}
 
                 {linkSuccess && (
-                  <div className="text-sm font-medium text-emerald-600 bg-emerald-100/50 dark:bg-emerald-900/30 p-3 rounded-xl">
+                  <div className="text-sm font-medium text-[var(--theme-accent-text)] bg-[var(--theme-bg-secondary)] p-3 rounded-xl">
                     {linkSuccess}
                   </div>
                 )}
@@ -662,7 +667,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                 <button
                   type="submit"
                   disabled={submittingLink || usernameAvailable === false}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-cyan-600 hover:bg-cyan-700 text-[var(--theme-text-primary)] font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submittingLink ? "Linking accounts..." : "Link Credentials"}
                 </button>
@@ -674,11 +679,11 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
           {isEmailLinked && (
             <div className="glass-panel p-6 sm:p-8 rounded-3xl space-y-6">
               <div>
-                <h2 className="text-xl font-bold flex items-center text-slate-900 dark:text-white">
-                  <Lock className="w-5 h-5 mr-2 text-emerald-500" />
+                <h2 className="text-xl font-bold flex items-center text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
+                  <Lock className="w-5 h-5 mr-2 text-[var(--theme-accent-text)]" />
                   Change Password
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-xs text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] mt-1">
                   Submit a secure password update for email credentials
                 </p>
               </div>
@@ -686,7 +691,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-semibold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)]">
                       New Password
                     </label>
                     <input
@@ -694,13 +699,13 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="At least 6 characters"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white/50 dark:bg-slate-900/50"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-semibold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)]">
                       Confirm New Password
                     </label>
                     <input
@@ -708,7 +713,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="At least 6 characters"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white/50 dark:bg-slate-900/50"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)] focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50"
                       required
                     />
                   </div>
@@ -721,7 +726,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                 )}
 
                 {passwordSuccess && (
-                  <div className="text-sm font-medium text-emerald-600 bg-emerald-100/50 dark:bg-emerald-900/30 p-3 rounded-xl">
+                  <div className="text-sm font-medium text-[var(--theme-accent-text)] bg-[var(--theme-bg-secondary)] p-3 rounded-xl">
                     {passwordSuccess}
                   </div>
                 )}
@@ -729,7 +734,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                 <button
                   type="submit"
                   disabled={submittingPassword}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-[var(--theme-text-primary)] font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50"
                 >
                   {submittingPassword
                     ? "Updating Password..."
@@ -742,22 +747,22 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
           {/* 4. Integrations */}
           <div className="glass-panel p-6 sm:p-8 rounded-3xl space-y-6">
             <div>
-              <h2 className="text-xl font-bold flex items-center text-slate-900 dark:text-white">
+              <h2 className="text-xl font-bold flex items-center text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
                 <Sparkles className="w-5 h-5 mr-2 text-fuchsia-500" />
                 Integrations
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] mt-1">
                 Configure external services and AI capabilities
               </p>
             </div>
 
             <form onSubmit={handleSaveGeminiKey} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <label className="text-sm font-semibold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)]">
                   Gemini API Key
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-muted)]" />
                   <input
                     type={showGeminiKey ? "text" : "password"}
                     value={geminiKey}
@@ -766,14 +771,14 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                       setGeminiKeyValid(null);
                     }}
                     placeholder="AIzaSy..."
-                    className="w-full pl-10 pr-24 py-3 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 bg-white/50 dark:bg-slate-900/50"
+                    className="w-full pl-10 pr-24 py-3 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)] focus:outline-none focus:ring-2 focus:ring-fuchsia-500 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50"
                   />
                   <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center space-x-2">
                     {testingGeminiKey && (
                       <RefreshCw className="w-4 h-4 text-fuchsia-500 animate-spin" />
                     )}
                     {!testingGeminiKey && geminiKeyValid === true && (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <CheckCircle2 className="w-4 h-4 text-[var(--theme-accent-text)]" />
                     )}
                     {!testingGeminiKey && geminiKeyValid === false && (
                       <XCircle className="w-4 h-4 text-red-500" />
@@ -782,7 +787,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                     <button
                       type="button"
                       onClick={() => setShowGeminiKey(!showGeminiKey)}
-                      className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors"
+                      className="p-1 rounded-md text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-[var(--theme-bg-card-hover)]/50 transition-colors"
                       title={showGeminiKey ? "Hide key" : "Show key"}
                     >
                       {showGeminiKey ? (
@@ -802,7 +807,7 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
               )}
 
               {geminiKeySuccess && (
-                <div className="text-sm font-medium text-emerald-600 bg-emerald-100/50 dark:bg-emerald-900/30 p-3 rounded-xl">
+                <div className="text-sm font-medium text-[var(--theme-accent-text)] bg-[var(--theme-bg-secondary)] p-3 rounded-xl">
                   {geminiKeySuccess}
                 </div>
               )}
@@ -812,19 +817,55 @@ export default function AccountPage({ onBack, user }: AccountPageProps) {
                   type="button"
                   onClick={handleTestGeminiKey}
                   disabled={testingGeminiKey || !geminiKey}
-                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50"
+                  className="bg-slate-200 hover:bg-slate-300 text-[var(--theme-text-primary)] dark:bg-[var(--theme-bg-secondary)] dark:hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50"
                 >
                   {testingGeminiKey ? "Testing..." : "Test Key"}
                 </button>
                 <button
                   type="submit"
                   disabled={savingGeminiKey}
-                  className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50"
+                  className="bg-fuchsia-600 hover:bg-fuchsia-700 text-[var(--theme-text-primary)] font-bold text-sm px-5 py-3 rounded-xl transition-all disabled:opacity-50"
                 >
                   {savingGeminiKey ? "Saving..." : "Save Key"}
                 </button>
               </div>
             </form>
+            {/* 5. Appearance */}
+            <div className="glass-panel p-6 sm:p-8 rounded-3xl space-y-6">
+              <div>
+                <h2 className="text-xl font-bold flex items-center text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
+                  <Eye className="w-5 h-5 mr-2 text-[var(--theme-accent-text)]" />
+                  Appearance
+                </h2>
+                <p className="text-xs text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] mt-1">
+                  Customize the application's look and feel
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)]">Theme Delete UI</h3>
+                    <p className="text-xs text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] mt-0.5">
+                      Apply global theme changes to the delete confirmation modal
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={applyThemeToDeleteUi}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setApplyThemeToDeleteUi(checked);
+                        localStorage.setItem("applyThemeToDeleteUi", String(checked));
+                      }}
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--theme-bg-card)] after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-[var(--theme-accent)]"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

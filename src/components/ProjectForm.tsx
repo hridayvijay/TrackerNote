@@ -82,13 +82,13 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
 
   return (
     <div className="glass-panel w-full max-w-lg mx-auto rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-      <div className="flex items-center justify-between px-6 py-5 border-b border-white/20 dark:border-slate-800/50 bg-white/30 dark:bg-slate-900/40">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-white/20 border-[var(--theme-border)]/50 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/40">
         <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400">
           {project ? "Edit Project" : "New Project"}
         </h3>
         <button
           onClick={onClose}
-          className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 p-2 rounded-full transition-colors"
+          className="text-[var(--theme-text-secondary)] hover:text-slate-800 dark:hover:text-slate-100 p-2 rounded-full transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -103,12 +103,12 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-2">
               Project Name
             </label>
             <input
               type="text"
-              className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 placeholder:text-slate-400 transition-all font-medium"
+              className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 placeholder:text-[var(--theme-text-muted)] transition-all font-medium"
               placeholder="e.g. Website Redesign"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -116,13 +116,13 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center">
+            <label className="block text-sm font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-2 flex items-center">
               <Building2 className="w-4 h-4 mr-2 opacity-70" />
               Assignee / Main Stakeholder
             </label>
             <input
               type="text"
-              className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 placeholder:text-slate-400 transition-all font-medium"
+              className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 placeholder:text-[var(--theme-text-muted)] transition-all font-medium"
               placeholder="e.g. Design Team or John Doe"
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
@@ -130,25 +130,25 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+              <label className="block text-xs font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-1.5 flex items-center">
                 <Calendar className="w-3.5 h-3.5 mr-1 opacity-70" />
                 Start / Creation Date
               </label>
               <input
                 type="date"
-                className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-sm"
+                className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-3 py-2 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-sm"
                 value={createdAtStr}
                 onChange={(e) => setCreatedAtStr(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+              <label className="block text-xs font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-1.5 flex items-center">
                 <Clock className="w-3.5 h-3.5 mr-1 opacity-70" />
                 Due Date
               </label>
               <input
                 type="date"
-                className="w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-sm"
+                className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-3 py-2 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-sm"
                 value={dueDateStr}
                 onChange={(e) => setDueDateStr(e.target.value)}
               />
@@ -157,11 +157,11 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center">
+              <label className="block text-xs font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-1.5 flex items-center">
                 <BarChart className="w-3.5 h-3.5 mr-1 opacity-70" />
                 Priority
               </label>
-              <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1">
+              <div className="flex bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl p-1">
                 {(["Low", "Medium", "High"] as const).map((p) => (
                   <button
                     key={p}
@@ -169,8 +169,8 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
                     onClick={() => setPriority(p)}
                     className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
                       priority === p
-                        ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                        ? "bg-[var(--theme-bg-card)] dark:bg-slate-700 text-[var(--theme-accent-text)] text-[var(--theme-accent-text)] shadow-sm"
+                        : "text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] dark:hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-secondary)]/50"
                     }`}
                   >
                     {p}
@@ -180,10 +180,10 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
             </div>
             
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-1.5">
                 Status
               </label>
-              <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/40 dark:border-slate-700/50 rounded-xl p-1">
+              <div className="flex bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl p-1">
                 {(["Pending", "Done"] as const).map((s) => (
                   <button
                     key={s}
@@ -192,9 +192,9 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
                     className={`flex-1 px-2 py-1.5 text-xs font-bold rounded-lg transition-all ${
                       status === s
                         ? s === "Done"
-                          ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 shadow-sm"
-                          : "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/30 dark:hover:bg-slate-800/50"
+                          ? "bg-emerald-100 text-[var(--theme-accent-text)] dark:text-[var(--theme-accent-text)] shadow-sm"
+                          : "bg-[var(--theme-bg-card)] dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                        : "text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] dark:hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-secondary)]/50"
                     }`}
                   >
                     {s}
@@ -209,14 +209,14 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-sm font-bold rounded-xl text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/50 border border-white/50 transition-colors shadow-sm"
+            className="px-5 py-2 text-sm font-bold rounded-xl text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-secondary)]/50 hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-card-hover)]/50 border border-white/50 transition-colors shadow-sm"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center px-6 py-2 shadow-lg shadow-indigo-500/30 text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-all disabled:opacity-50"
+            className="inline-flex items-center px-6 py-2 shadow-lg shadow-indigo-500/30 text-sm font-bold rounded-xl text-[var(--theme-text-primary)] bg-[var(--theme-accent)] hover:bg-[var(--theme-accent)] transition-all disabled:opacity-50"
           >
             <Save className="w-4 h-4 mr-2" />
             {project ? "Save changes" : "Create Project"}
