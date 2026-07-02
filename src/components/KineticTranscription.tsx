@@ -18,19 +18,46 @@ export default function KineticTranscription({ transcript, isRecording }: Kineti
   
   const lastTranscriptRef = useRef(transcript);
   const lastUpdateRef = useRef(Date.now());
+  const completedWordsRef = useRef<string[]>([]);
+  const currentWordRef = useRef<string>("");
+
+  useEffect(() => {
+    if (isRecording) {
+      setCompletedWords([]);
+      setCurrentWord("");
+      completedWordsRef.current = [];
+      currentWordRef.current = "";
+      setIsFadingOut(false);
+      lastTranscriptRef.current = "";
+    }
+  }, [isRecording]);
 
   useEffect(() => {
     if (!isRecording) {
-      if (completedWords.length > 0 || currentWord) {
-        if (currentWord) {
-          setCompletedWords(prev => [...prev, currentWord]);
+      if (completedWordsRef.current.length > 0 || currentWordRef.current) {
+        if (currentWordRef.current) {
+          const w = currentWordRef.current;
+          setCompletedWords(prev => {
+            const next = [...prev, w];
+            completedWordsRef.current = next;
+            return next;
+          });
           setCurrentWord("");
+          currentWordRef.current = "";
         }
         const timer1 = setTimeout(() => {
           setIsFadingOut(true);
         }, 800);
-        return () => clearTimeout(timer1);
+        const timer2 = setTimeout(() => {
+          setCompletedWords([]);
+          setCurrentWord("");
+          completedWordsRef.current = [];
+          currentWordRef.current = "";
+        }, 1200);
+        lastTranscriptRef.current = transcript;
+        return () => { clearTimeout(timer1); clearTimeout(timer2); };
       }
+      lastTranscriptRef.current = transcript;
       return;
     }
     
@@ -46,17 +73,17 @@ export default function KineticTranscription({ transcript, isRecording }: Kineti
 
       if (isNewWord) {
         const timeSinceLast = Date.now() - lastUpdateRef.current;
-        const previousWordRaw = completedWords.length > 0 ? completedWords[completedWords.length - 1] : "";
+        const previousWordRaw = completedWordsRef.current.length > 0 ? completedWordsRef.current[completedWordsRef.current.length - 1] : "";
         let previousWordClean = previousWordRaw.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
-        const latestWordRaw = currentWord;
+        const latestWordRaw = currentWordRef.current;
         let wordToAdd = latestWordRaw;
         
         if (wordToAdd) {
             let nextWordClean = words[words.length - 1]?.toLowerCase() || "";
             
             // Check if there is a question word in the recent history
-            const allWords = [...completedWords, wordToAdd];
+            const allWords = [...completedWordsRef.current, wordToAdd];
             const recentWords = allWords.slice(-6); // look at the last few words
             const hasQuestionWord = recentWords.some(w => questionWords.has(w.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()));
             
@@ -67,7 +94,11 @@ export default function KineticTranscription({ transcript, isRecording }: Kineti
                 wordToAdd += "?";
             }
             
-            setCompletedWords(prev => [...prev, wordToAdd]);
+            setCompletedWords(prev => {
+              const next = [...prev, wordToAdd];
+              completedWordsRef.current = next;
+              return next;
+            });
         }
         
         let newCurrent = words[words.length - 1];
@@ -76,12 +107,15 @@ export default function KineticTranscription({ transcript, isRecording }: Kineti
         }
         
         setCurrentWord(newCurrent);
+        currentWordRef.current = newCurrent;
         lastUpdateRef.current = Date.now();
       } else {
         setCurrentWord(words[words.length - 1]);
+        currentWordRef.current = words[words.length - 1];
       }
     } else {
       setCurrentWord("");
+      currentWordRef.current = "";
     }
     
     lastTranscriptRef.current = transcript;
@@ -94,13 +128,9 @@ export default function KineticTranscription({ transcript, isRecording }: Kineti
     }
   }, [completedWords, currentWord]);
 
-  if (!isRecording && isFadingOut) {
-    return null;
-  }
-
   return (
     <AnimatePresence>
-      {(!isFadingOut && (completedWords.length > 0 || currentWord)) && (
+      {(!isFadingOut && (isRecording || completedWords.length > 0 || currentWord.length > 0)) && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
