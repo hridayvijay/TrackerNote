@@ -41,24 +41,68 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const isRecordingRef = useRef(false);
   const finalTranscriptRef = useRef('');
 
+  const [geminiKey, setGeminiKey] = useState<string | null>(null);
+
   useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setTranscriptionSupported(false);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      console.log('3. onresult fired, transcript:', event.results[event.resultIndex][0].transcript);
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += t + ' ';
+        } else {
+          interim += t;
+        }
+      }
+      const combined = (finalTranscriptRef.current + interim).trim();
+      console.log('4. setLiveTranscript called with:', combined);
+      setInterimText(combined);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("SpeechRecognition error:", event.error);
+    };
+
+    recognition.onend = () => {
+      console.log("SpeechRecognition onend fired");
+      if (isRecordingRef.current) {
+        try { recognition.start(); } catch(e){}
+      }
+    };
+
+    recognitionRef.current = recognition;
+
     return () => {
       stopTimer();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     };
   }, []);
 
-  const checkGeminiKey = async (): Promise<boolean> => {
-    if (!auth.currentUser) return false;
+  const checkGeminiKey = async (): Promise<string | null> => {
+    if (!auth.currentUser) return null;
     try {
       const docRef = doc(db, 'users', auth.currentUser.uid, 'settings', 'integrations');
       const docSnap = await getDoc(docRef);
       if (docSnap.exists() && docSnap.data().geminiApiKey) {
-        return true;
+        return docSnap.data().geminiApiKey;
       }
     } catch (e) {
       console.error("Error checking key", e);
     }
-    return false;
+    return null;
   };
 
   const startTimer = () => {
@@ -82,6 +126,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   };
 
   const handleMicClick = async () => {
+    console.log('1. startRecording called');
     if (isRecording) {
       stopRecording();
       return;
@@ -92,59 +137,32 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     setErrorMessage("");
     setInterimText("");
 
-    const hasKey = await checkGeminiKey();
-    if (!hasKey) {
+    const key = await checkGeminiKey();
+    if (!key) {
       setErrorType("no-key");
       setErrorMessage("No Gemini key configured.");
       return;
     }
+    setGeminiKey(key);
 
     try {
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('2. getUserMedia resolved, starting recognition');
       } catch (e) {
         setErrorType("mic");
         setErrorMessage("Microphone permission denied.");
         return;
       }
 
-      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-      
-      if (!SpeechRecognition) {
-        setTranscriptionSupported(false);
-      } else {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-        
+      if (transcriptionSupported && recognitionRef.current) {
         finalTranscriptRef.current = '';
-        
-        recognition.onresult = (event: any) => {
-          let interim = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            const t = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscriptRef.current += t + ' ';
-            } else {
-              interim += t;
-            }
-          }
-          const combined = (finalTranscriptRef.current + interim).trim();
-          setInterimText(combined);
-        };
-        recognition.onerror = (event: any) => {
-          console.error("SpeechRecognition error:", event.error);
-        };
-        recognition.onend = () => {
-          if (isRecordingRef.current) {
-             try { recognition.start(); } catch(e){}
-          }
-        };
-        
-        recognition.start();
-        recognitionRef.current = recognition;
+        try {
+          recognitionRef.current.start();
+        } catch(e) {
+          console.error("Failed to start SpeechRecognition:", e);
+        }
       }
 
       let options: any = { audioBitsPerSecond: 32000 };
@@ -211,7 +229,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     mediaRecorderRef.current?.stop();
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      recognitionRef.current = null;
     }
   };
 
@@ -239,7 +256,8 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
           uid: authUser.uid,
           audioBase64: b64,
           mimeType: mimeType,
-          displayName: displayName
+          displayName: displayName,
+          geminiApiKey: geminiKey
         })
       });
 
@@ -381,7 +399,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
             )}
           </AnimatePresence>
 
-          <div className="relative">
+          <div className="relative z-10">
             <VoiceOrb 
               state={isParsing ? "parsing" : isRecording ? "recording" : "idle"}
               onClick={handleMicClick}

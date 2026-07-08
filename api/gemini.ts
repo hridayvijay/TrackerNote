@@ -1,48 +1,22 @@
 import { Request, Response } from 'express';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 import { GoogleGenAI } from '@google/genai';
-
-if (!getApps().length) {
-  const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (serviceAccountStr) {
-    try {
-      const serviceAccount = JSON.parse(serviceAccountStr);
-      initializeApp({
-        credential: cert(serviceAccount),
-      });
-    } catch (e) {
-      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON", e);
-    }
-  }
-}
 
 export default async function handler(req: Request, res: Response) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-    return res.status(500).json({ error: 'FIREBASE_SERVICE_ACCOUNT_JSON is not configured' });
-  }
-
-  const { uid, audioBase64, mimeType, displayName } = req.body;
+  const { uid, audioBase64, mimeType, displayName, geminiApiKey } = req.body;
 
   if (!uid || !audioBase64 || !mimeType) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+  
+  if (!geminiApiKey) {
+    return res.status(400).json({ error: 'No Gemini API key provided' });
+  }
 
   try {
-    const db = getFirestore();
-    const settingsRef = db.collection('users').doc(uid).collection('settings').doc('integrations');
-    const settingsDoc = await settingsRef.get();
-
-    if (!settingsDoc.exists || !settingsDoc.data()?.geminiApiKey) {
-      return res.status(400).json({ error: 'No Gemini API key configured for this user.' });
-    }
-
-    const geminiApiKey = settingsDoc.data()?.geminiApiKey;
-
     const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
     const now = new Date();
@@ -74,14 +48,12 @@ export default async function handler(req: Request, res: Response) {
     ];
 
     let responseJsonStr = '';
-
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-2.5-flash',
         contents,
         config: { systemInstruction },
       });
-
       responseJsonStr = response.text || '';
     } catch (genErr: any) {
       console.error("Gemini API error", genErr.message || genErr);
@@ -110,13 +82,12 @@ export default async function handler(req: Request, res: Response) {
           { role: 'model', parts: [{ text: responseJsonStr }] },
           { role: 'user', parts: [{ text: 'That was not valid JSON. Please return ONLY the raw JSON object without any markdown wrapping or other text.' }] }
         ];
-
+        
         const retryResponse = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-lite',
+          model: 'gemini-2.5-flash',
           contents: retryContents,
           config: { systemInstruction },
         });
-
         const retryStr = retryResponse.text || '';
         let cleanRetryStr = retryStr.trim();
         if (cleanRetryStr.startsWith('```json')) {
@@ -134,6 +105,7 @@ export default async function handler(req: Request, res: Response) {
     }
 
     return res.status(200).json(parsedJson);
+
   } catch (error) {
     console.error("Error processing request", error);
     return res.status(502).json({ error: 'Internal server error' });

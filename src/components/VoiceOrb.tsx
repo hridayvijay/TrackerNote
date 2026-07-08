@@ -14,6 +14,7 @@ const vertexShader = `
 varying vec3 vNormal;
 varying vec3 vPosition;
 varying vec3 vViewPosition;
+varying vec2 vUv;
 
 uniform float u_amplitude;
 uniform float u_time;
@@ -22,7 +23,6 @@ uniform float u_state;
 // Simplex 3D Noise 
 vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
 vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-
 float snoise(vec3 v){ 
   const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
   const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
@@ -73,15 +73,24 @@ float snoise(vec3 v){
 void main() {
   vNormal = normalize(normalMatrix * normal);
   vPosition = position;
+  vUv = uv;
 
   vec3 displaced = position;
-  if (u_state > 0.5 && u_state < 1.5) {
-    float disp = snoise(position * 3.0 + u_time * 0.5) * u_amplitude * 0.12;
-    displaced = position + normal * disp;
-  } else if (u_state > 1.5) {
-    float wave = sin(position.y * 4.0 + u_time * 2.0) * 0.035;
-    displaced = position + normal * wave;
+  
+  // Base displacement based on state
+  float noiseFreq = 2.0;
+  float noiseAmp = 0.05;
+  
+  if (u_state > 0.5 && u_state < 1.5) { // Recording
+    noiseFreq = 3.0 + u_amplitude * 4.0;
+    noiseAmp = 0.08 + u_amplitude * 0.15;
+  } else if (u_state > 1.5) { // Parsing
+    noiseFreq = 4.0;
+    noiseAmp = 0.035;
   }
+  
+  float disp = snoise(position * noiseFreq + u_time * 0.5) * noiseAmp;
+  displaced = position + normal * disp;
 
   vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
   vViewPosition = -mvPosition.xyz;
@@ -104,11 +113,11 @@ uniform vec3 u_orbBg;
 varying vec3 vNormal;
 varying vec3 vPosition;
 varying vec3 vViewPosition;
+varying vec2 vUv;
 
 // Simplex 3D Noise 
 vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
 vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-
 float snoise(vec3 v){ 
   const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
   const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
@@ -157,81 +166,56 @@ float snoise(vec3 v){
 }
 
 void main() {
-  vec3 colorIdle = vec3(0.0);
-  vec3 colorRec = vec3(0.0);
-  vec3 colorParse = vec3(0.0);
-  
-  if (u_weights.x > 0.0) {
-    float t = u_time * 0.15;
-    vec3 b1Center = vec3(cos(t)*0.4, sin(t*0.7)*0.4, sin(t*0.5)*0.3);
-    vec3 b2Center = vec3(cos(t+2.09)*0.38, sin(t*0.6+1.0)*0.35, cos(t*0.8)*0.3);
-    vec3 b3Center = vec3(cos(t+4.19)*0.34, sin(t*0.9+2.0)*0.32, sin(t)*0.28);
-    float b1 = 1.0 - smoothstep(0.0, 0.6, length(vPosition - b1Center));
-    float b2 = 1.0 - smoothstep(0.0, 0.55, length(vPosition - b2Center));
-    float b3 = 1.0 - smoothstep(0.0, 0.5, length(vPosition - b3Center));
-    colorIdle = mix(u_orbBg, u_color1, b1); 
-    colorIdle = mix(colorIdle, u_color2, b2); 
-    colorIdle = mix(colorIdle, u_color3, b3*0.7);
-    colorIdle *= 0.82;
-  }
-  
-  if (u_weights.y > 0.0) {
-    float orbitR = 0.08 + u_amplitude * 0.62;
-    float rt = u_time * 0.2;
-    vec3 b1C = vec3(cos(rt)*orbitR, sin(rt)*orbitR, 0.0);
-    vec3 b2C = vec3(cos(rt+1.57)*orbitR, sin(rt+1.57)*orbitR, 0.0);
-    vec3 b3C = vec3(cos(rt+3.14)*orbitR, sin(rt+3.14)*orbitR, 0.0);
-    vec3 b4C = vec3(cos(rt+4.71)*orbitR, sin(rt+4.71)*orbitR, 0.0);
-    float blobSize = 0.5 + u_amplitude * 0.4;
-    float b1 = 1.0 - smoothstep(0.0, blobSize, length(vPosition - b1C));
-    float b2 = 1.0 - smoothstep(0.0, blobSize, length(vPosition - b2C));
-    float b3 = 1.0 - smoothstep(0.0, blobSize, length(vPosition - b3C));
-    float b4 = 1.0 - smoothstep(0.0, blobSize, length(vPosition - b4C));
-    
-    colorRec = mix(u_orbBg, u_color1, b1);
-    colorRec = mix(colorRec, u_color2, b2);
-    colorRec = mix(colorRec, u_color3, b3);
-    colorRec = mix(colorRec, u_color4, b4);
-    
-    float sat = 1.0 + u_amplitude * 0.45; 
-    float lum = dot(colorRec, vec3(0.299,0.587,0.114)); 
-    colorRec = mix(vec3(lum), colorRec, sat);
-    colorRec *= (0.85 + u_amplitude * 0.4);
-  }
-  
-  if (u_weights.z > 0.0) {
-    float band1 = sin(vPosition.y*3.0 + u_time*1.4)*0.5+0.5;
-    float band2 = sin(vPosition.y*5.0 - u_time*1.0 + vPosition.x*2.0)*0.5+0.5;
-    float band3 = sin(vPosition.y*2.0 + u_time*0.8 + vPosition.z*1.5)*0.5+0.5;
-    colorParse = mix(u_color1, u_color2, band1);
-    colorParse = mix(colorParse, u_color3, band2*0.65);
-    colorParse = mix(colorParse, u_color4, band3*0.4);
-    
-    float scanA = u_time * 2.5;
-    vec3 scanDir = normalize(vec3(sin(scanA), 0.0, cos(scanA)));
-    float scan = 1.0 - smoothstep(0.0, 0.06, abs(dot(normalize(vPosition), scanDir) - 0.92));
-    colorParse += vec3(scan * 0.85);
-    colorParse *= u_breathe;
-  }
-  
-  vec3 color = colorIdle * u_weights.x + colorRec * u_weights.y + colorParse * u_weights.z;
-
-  // GLASS EFFECT
-  float fresnel = pow(1.0 - max(dot(normalize(vNormal), normalize(vViewPosition)), 0.0), 2.5);
-  color = mix(color, vec3(1.0), fresnel * 0.28);
-  
-  vec3 lightDir = normalize(vec3(-0.5, 0.8, 1.0));
+  vec3 normal = normalize(vNormal);
   vec3 viewDir = normalize(vViewPosition);
-  vec3 reflectDir = reflect(-lightDir, normalize(vNormal));
-  float spec = pow(max(dot(reflectDir, viewDir), 0.0), 52.0);
-  color += vec3(spec * 0.52);
+
+  // Soft rim light
+  float fresnel = dot(normal, viewDir);
+  fresnel = clamp(1.0 - fresnel, 0.0, 1.0);
+  float rim = pow(fresnel, 2.5);
+  float intenseRim = pow(fresnel, 4.0);
+
+  // Base slow noise for internal structure
+  float n1 = snoise(vec3(vPosition.xy * 1.8, u_time * 0.2));
+  float n2 = snoise(vec3(vPosition.yz * 2.2, u_time * 0.3 + 5.0));
+
+  vec3 idleColor = mix(u_color1, u_color2, smoothstep(-0.8, 0.8, n1));
+  idleColor = mix(idleColor, u_color3, smoothstep(-0.4, 0.8, n2));
+  idleColor += u_color4 * intenseRim * 1.5;
   
-  vec3 shadowDir = normalize(vec3(0.3, -0.8, -0.5));
-  float shadow = pow(max(dot(normalize(vNormal), shadowDir), 0.0), 4.0);
-  color = mix(color, color * 0.25, shadow * 0.38);
+  // Recording state
+  float recTime = u_time * (1.0 + u_amplitude * 2.5);
+  float rn1 = snoise(vec3(vPosition.xy * 1.8, recTime * 0.5));
+  float rn2 = snoise(vec3(vPosition.yz * 2.2, recTime * 0.6 + 5.0));
   
-  float alpha = 0.86 + fresnel * 0.14;
-  gl_FragColor = vec4(color, alpha);
+  vec3 recColor = mix(u_color1, u_color2, smoothstep(-0.8, 0.5, rn1));
+  recColor = mix(recColor, u_color3, smoothstep(-0.2, 0.8, rn2));
+  recColor += u_color4 * intenseRim * 1.5;
+  
+  // Increase brightness and vibrancy for recording based on amplitude
+  recColor += mix(u_color2, u_color4, u_amplitude) * u_amplitude * 2.0;
+  
+  // Parsing state
+  float pTime = u_time * 1.5;
+  float pn = sin(vPosition.y * 5.0 - pTime) * 0.5 + 0.5;
+  vec3 parseColor = mix(u_color1, u_color4, pn);
+  parseColor *= u_breathe;
+
+  vec3 finalColor = idleColor * u_weights.x + recColor * u_weights.y + parseColor * u_weights.z;
+  
+  // Specular highlight for a glass-like shell
+  vec3 lightDir = normalize(vec3(0.5, 0.8, 1.0));
+  vec3 halfVector = normalize(lightDir + viewDir);
+  float NdotH = max(0.0, dot(normal, halfVector));
+  float specular = pow(NdotH, 60.0) * 0.8;
+  finalColor += specular;
+  
+  // Translucency: alpha depends on fresnel and a base opacity
+  float baseAlpha = 0.85; 
+  float alpha = baseAlpha + rim * 0.5;
+  alpha = clamp(alpha, 0.0, 1.0);
+  
+  gl_FragColor = vec4(finalColor, alpha);
 }
 `;
 
@@ -240,6 +224,7 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
   const { themeId, mode, orbColors } = useTheme();
+  const safeColors = orbColors?.length === 4 ? orbColors : ['#c084fc','#8B2FE8','#0CB8E8','#ff375f'];
 
   const reqIdRef = useRef<number>(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -260,6 +245,7 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
     renderer.setSize(90, 90);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.debug.checkShaderErrors = true;
+    renderer.domElement.style.pointerEvents = 'none';
     console.log("WebGLRenderer initialized in VoiceOrb");
     containerRef.current.appendChild(renderer.domElement);
 
@@ -293,14 +279,20 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
     let targetWeights = new THREE.Vector3(1.0, 0.0, 0.0);
     let targetState = 0.0;
     let frameCount = 0;
+    let firstFrame = true;
 
     const updateLoop = () => {
       reqIdRef.current = requestAnimationFrame(updateLoop);
       if (!materialRef.current || !meshRef.current) return;
       
+      if (firstFrame) {
+        console.log('u_color1 value', materialRef.current.uniforms.u_color1.value);
+        firstFrame = false;
+      }
+      
       frameCount++;
       if (frameCount % 60 === 0) {
-         console.log("VoiceOrb updateLoop running, frame:", frameCount);
+         console.log("VoiceOrb updateLoop running, frame:", frameCount, "u_color1:", materialRef.current.uniforms.u_color1.value);
       }
 
       const mat = materialRef.current;
@@ -327,11 +319,14 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
       if (state === "recording" && analyserRef.current && dataArrayRef.current) {
         analyserRef.current.getByteFrequencyData(dataArrayRef.current);
         let sum = 0;
-        for (let i = 0; i < dataArrayRef.current.length; i++) sum += dataArrayRef.current[i];
-        targetAmplitude = (sum / dataArrayRef.current.length) / 255.0;
+        // Focus heavily on voice frequencies (approx first 20 bins for 256 fftSize)
+        const limit = Math.min(20, dataArrayRef.current.length);
+        for (let i = 0; i < limit; i++) sum += dataArrayRef.current[i];
+        targetAmplitude = (sum / limit) / 255.0;
+        targetAmplitude = Math.min(targetAmplitude * 4.0, 1.0); // Significantly boost reactivity
       }
 
-      mat.uniforms.u_amplitude.value = THREE.MathUtils.lerp(mat.uniforms.u_amplitude.value, targetAmplitude, 0.15);
+      mat.uniforms.u_amplitude.value = THREE.MathUtils.lerp(mat.uniforms.u_amplitude.value, targetAmplitude, 0.4);
 
       if (state === "idle") {
         m.rotation.y += 0.0018;
@@ -340,8 +335,8 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
       } else if (state === "recording") {
         m.rotation.y = 0; // locked
         mat.uniforms.u_time.value += 0.015 + mat.uniforms.u_amplitude.value * 0.018;
-        const s = 1.0 + mat.uniforms.u_amplitude.value * 0.12;
-        m.scale.setScalar(THREE.MathUtils.lerp(m.scale.x, s, 0.08));
+        const s = 1.0 + mat.uniforms.u_amplitude.value * 0.35;
+        m.scale.setScalar(THREE.MathUtils.lerp(m.scale.x, s, 0.25));
       } else if (state === "parsing") {
         m.rotation.y = 0;
         mat.uniforms.u_time.value += 0.011;
@@ -364,21 +359,19 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
     };
   }, []); // Only init scene once
 
-  // Re-read colors when theme changes
-  useEffect(() => {
-    if (!materialRef.current) return;
-    
-    // We delay slightly to let CSS variables apply via Context
-    const t = setTimeout(() => {
-      materialRef.current!.uniforms.u_color1.value.set(orbColors[0]);
-      materialRef.current!.uniforms.u_color2.value.set(orbColors[1]);
-      materialRef.current!.uniforms.u_color3.value.set(orbColors[2]);
-      materialRef.current!.uniforms.u_color4.value.set(orbColors[3]);
-      materialRef.current!.uniforms.u_orbBg.value.set(THEMES[themeId][mode].orbBg);
-    }, 50);
+  console.log('orbColors from context', safeColors);
 
-    return () => clearTimeout(t);
-  }, [themeId, mode, orbColors]);
+  useEffect(() => {
+    if (!materialRef.current || !safeColors || safeColors.length !== 4) return;
+    console.log('applying orb colors', safeColors);
+    materialRef.current.uniforms.u_color1.value.set(safeColors[0]);
+    materialRef.current.uniforms.u_color2.value.set(safeColors[1]);
+    materialRef.current.uniforms.u_color3.value.set(safeColors[2]);
+    materialRef.current.uniforms.u_color4.value.set(safeColors[3]);
+    const bgColor = new THREE.Color(THEMES[themeId][mode].orbBg);
+    materialRef.current.uniforms.u_orbBg.value.copy(bgColor);
+    materialRef.current.uniformsNeedUpdate = true;
+  }, [safeColors, themeId, mode]);
 
   // Handle audio stream updates
   useEffect(() => {
@@ -388,6 +381,7 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
       analyser.fftSize = 256;
       const source = ctx.createMediaStreamSource(audioStream);
       source.connect(analyser);
+      ctx.resume().catch(()=>{});
       audioCtxRef.current = ctx;
       analyserRef.current = analyser;
       dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
@@ -411,16 +405,15 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
     <div 
       className="cursor-pointer shadow-xl transition-transform duration-300 hover:scale-105 active:scale-95"
       onClick={onClick}
+      onTouchStart={onClick}
       style={{
-        width: 90,
-        height: 90,
+        width: 110,
+        height: 110,
         borderRadius: "50%",
-        overflow: "hidden",
-        WebkitMask: "radial-gradient(circle, white 100%, transparent 100%)",
         transform: "translateZ(0)",
       }}
     >
-      <div ref={containerRef} style={{ width: 90, height: 90 }} />
+      <div ref={containerRef} style={{ width: 110, height: 110 }} />
     </div>
   );
 }
