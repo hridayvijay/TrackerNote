@@ -26,3 +26,215 @@ body {
   @apply bg-[var(--theme-bg-card)] backdrop-blur-2xl border border-[var(--theme-border)] shadow-xl;
 }
 
+
+.app-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 25% 0%, var(--theme-orb-1) 0%, transparent 55%),
+              radial-gradient(ellipse at 80% 80%, var(--theme-orb-2) 0%, transparent 50%);
+  opacity: 0.25;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.synced-badge {
+  background: var(--theme-bg-primary);
+  border: 0.5px solid var(--theme-border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--theme-accent);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.synced-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--theme-accent);
+}
+
+.my-tasks-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--theme-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mt-badge {
+  background: var(--theme-bg-primary);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 10px;
+  color: var(--theme-accent);
+}
+
+.mt-card {
+  background: var(--theme-bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.proj-card {
+  background: var(--theme-bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 12px;
+  padding: 9px 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.note-item {
+  background: var(--theme-bg-secondary);
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.dash-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dash-title {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--theme-text-primary);
+}
+
+.col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 8px 0;
+  border-bottom: 1px solid var(--theme-border-strong);
+  margin-bottom: 8px;
+}
+.col-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--theme-accent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.col-count {
+  background: var(--theme-bg-primary);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 10px;
+  color: var(--theme-accent);
+}
+
+.proj-title {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--theme-text-primary);
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.proj-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0.5;
+}
+.proj-action {
+  font-size: 10px;
+  color: var(--theme-text-secondary);
+}
+
+.note-status {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid;
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+}
+.note-status.pending {
+  border-color: rgba(253,183,0,0.5);
+}
+.note-status.done {
+  border-color: var(--theme-accent);
+  background: var(--theme-bg-primary);
+  color: var(--theme-accent);
+}
+.note-body {
+  flex: 1;
+  min-width: 0;
+}
+.note-text {
+  font-size: 10.5px;
+  color: var(--theme-text-secondary);
+  line-height: 1.45;
+  margin-bottom: 3px;
+}
+.note-text.done-text {
+  text-decoration: line-through;
+  opacity: 0.45;
+}
+.note-meta {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pri-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.pri-high {
+  background: rgba(253,231,37,0.1);
+  border: 0.5px solid rgba(253,231,37,0.35);
+  color: rgba(253,231,37,0.9);
+}
+.pri-med {
+  background: var(--theme-bg-primary);
+  border: 0.5px solid var(--theme-border);
+  color: var(--theme-accent);
+}
+.pri-low {
+  background: rgba(49,104,142,0.15);
+  border: 0.5px solid rgba(49,104,142,0.35);
+  color: rgba(49,104,142,0.9);
+}
+.due-tag {
+  font-size: 9px;
+  color: var(--theme-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.orb-ring {
+  border-radius: 50%;
+  padding: 4px;
+  background: var(--theme-bg-card, rgba(53,183,121,0.08));
+  border: 0.5px solid var(--theme-border);
+}

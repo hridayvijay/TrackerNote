@@ -1,4 +1,6 @@
-import React, { useRef, useEffect } from "react";
+const fs = require('fs');
+
+const content = `import React, { useRef, useEffect } from "react";
 import { useTheme } from "../themes/ThemeContext";
 
 export interface VoiceOrbProps {
@@ -27,7 +29,7 @@ export default function VoiceOrb({ state, onClick, analyser }: VoiceOrbProps) {
     const r = parseInt(hex.substring(0,2), 16) || 0;
     const g = parseInt(hex.substring(2,4), 16) || 0;
     const b = parseInt(hex.substring(4,6), 16) || 0;
-    return `rgba(${r},${g},${b},${alpha})`;
+    return \`rgba(\${r},\${g},\${b},\${alpha})\`;
   };
 
   useEffect(() => {
@@ -109,26 +111,29 @@ export default function VoiceOrb({ state, onClick, analyser }: VoiceOrbProps) {
     function drawParse(cx: number, cy: number, r: number, t: number) {
       if (!ctx) return;
       ctx.fillStyle = 'rgba(0,0,0,0.88)'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-      
-      // Fluid pulsing orb for parsing
-      const pulse = Math.sin(t * 3) * 0.1 + 0.9;
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * pulse);
-      g.addColorStop(0, hexToRgba(safeColors[0], 0.6));
-      g.addColorStop(0.5, hexToRgba(safeColors[1], 0.3));
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
-
-      // Spinning ring
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(t * 2);
-      const ring = ctx.createRadialGradient(0, 0, r * 0.7, 0, 0, r * 0.9);
-      ring.addColorStop(0, 'rgba(0,0,0,0)');
-      ring.addColorStop(0.5, hexToRgba(safeColors[2], 0.8));
-      ring.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2); ctx.fillStyle = ring; ctx.fill();
-      ctx.restore();
+      for (let i = 0; i < 4; i++) {
+        const yOff = Math.sin(t * 1.4 + i * Math.PI / 2) * r * 0.55;
+        const y = cy + yOff;
+        const h = r * 0.52;
+        const g = ctx.createLinearGradient(cx - r, y - h / 2, cx + r, y + h / 2);
+        g.addColorStop(0, hexToRgba(safeColors[i], 0));
+        g.addColorStop(0.28, hexToRgba(safeColors[i], 0.48));
+        g.addColorStop(0.72, hexToRgba(safeColors[(i + 1) % 4], 0.48));
+        g.addColorStop(1, hexToRgba(safeColors[(i + 1) % 4], 0));
+        ctx.fillStyle = g; ctx.fillRect(cx - r, y - h / 2, r * 2, h);
+      }
+      const breathe = Math.sin(t * 1.7) * 0.08 + 0.92;
+      const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.58 * breathe);
+      cg.addColorStop(0, hexToRgba(safeColors[1], 0.28));
+      cg.addColorStop(1, hexToRgba(safeColors[1], 0));
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = cg; ctx.fill();
+      const sa = t * 2.4;
+      const sx = cx + Math.cos(sa) * r * 0.82;
+      const sy = cy + Math.sin(sa) * r * 0.82;
+      const scan = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 0.22);
+      scan.addColorStop(0, 'rgba(255,255,255,0.75)');
+      scan.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.beginPath(); ctx.arc(sx, sy, r * 0.22, 0, Math.PI * 2); ctx.fillStyle = scan; ctx.fill();
     }
 
     function renderV() {
@@ -211,12 +216,12 @@ export default function VoiceOrb({ state, onClick, analyser }: VoiceOrbProps) {
 
   return (
     <div 
-      className="cursor-pointer shadow-xl transition-transform duration-300 hover:scale-105 active:scale-95 orb-ring"
+      className="cursor-pointer shadow-xl transition-transform duration-300 hover:scale-105 active:scale-95"
       onClick={onClick}
       onTouchStart={onClick}
       style={{
-        width: 72,
-        height: 72,
+        width: 140,
+        height: 140,
         borderRadius: "50%",
         transform: "translateZ(0)",
         display: "flex",
@@ -224,7 +229,10 @@ export default function VoiceOrb({ state, onClick, analyser }: VoiceOrbProps) {
         justifyContent: "center"
       }}
     >
-      <canvas ref={canvasRef} width={72} height={72} style={{ borderRadius: "50%", display: "block" }} />
+      <canvas ref={canvasRef} width={140} height={140} style={{ borderRadius: "50%", display: "block" }} />
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/components/VoiceOrb.tsx', content);

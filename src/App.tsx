@@ -677,13 +677,34 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col font-sans relative overflow-hidden bg-[var(--theme-bg-primary)] transition-colors duration-300 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
       
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-400/10 dark:bg-purple-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none z-0" style={{ background: 'var(--theme-orb-1)', opacity: 0.15 }} />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none z-0" style={{ background: 'var(--theme-orb-2)', opacity: 0.15 }} />
+      
 
       <header className="glass flex-shrink-0 relative z-10 border-b border-[var(--theme-border)] border-[var(--theme-border)]/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setShowAccountPage(false)}>
-            <Briefcase className="w-6 h-6 text-[var(--theme-accent-text)] text-[var(--theme-accent-text)]" />
+            <svg width="26" height="26" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="vg" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="var(--theme-orb-1)"/>
+                  <stop offset="50%" stopColor="var(--theme-orb-2)"/>
+                  <stop offset="100%" stopColor="var(--theme-orb-3)"/>
+                </linearGradient>
+                <radialGradient id="vs" cx="32%" cy="24%" r="58%">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.2)"/>
+                  <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
+                </radialGradient>
+              </defs>
+              <circle cx="100" cy="100" r="100" fill="url(#vg)"/>
+              <circle cx="100" cy="100" r="100" fill="url(#vs)"/>
+              <line x1="25" y1="62" x2="131" y2="62" stroke="white" strokeWidth="14" strokeLinecap="round"/>
+              <line x1="78" y1="62" x2="78" y2="152" stroke="white" strokeWidth="14" strokeLinecap="round"/>
+              <line x1="131" y1="62" x2="131" y2="152" stroke="white" strokeWidth="14" strokeLinecap="round"/>
+              <line x1="131" y1="62" x2="172" y2="152" stroke="white" strokeWidth="14" strokeLinecap="round"/>
+              <line x1="172" y1="62" x2="172" y2="152" stroke="white" strokeWidth="14" strokeLinecap="round"/>
+              <circle cx="131" cy="62" r="8" fill="white"/>
+            </svg>
             <h1 className="text-xl font-black tracking-tight text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] select-none">TrackerNote</h1>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-4">

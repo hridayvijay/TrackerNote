@@ -82,7 +82,7 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
 
   return (
     <div className="glass-panel w-full max-w-lg mx-auto rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-      <div className="flex items-center justify-between px-6 py-5 border-b border-white/20 border-[var(--theme-border)]/50 bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/40">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--theme-border-strong)] bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/40">
         <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-cyan-600 dark:from-indigo-400 dark:to-cyan-400">
           {project ? "Edit Project" : "New Project"}
         </h3>
@@ -108,7 +108,7 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
             </label>
             <input
               type="text"
-              className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 placeholder:text-[var(--theme-text-muted)] transition-all font-medium"
+              className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-[var(--theme-border-strong)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--theme-accent)]/20 focus:border-[var(--theme-accent)]/50 placeholder:text-[var(--theme-text-muted)] transition-all font-medium"
               placeholder="e.g. Website Redesign"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -122,7 +122,7 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
             </label>
             <input
               type="text"
-              className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 placeholder:text-[var(--theme-text-muted)] transition-all font-medium"
+              className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-[var(--theme-border-strong)] rounded-xl px-4 py-2.5 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--theme-accent)]/20 focus:border-[var(--theme-accent)]/50 placeholder:text-[var(--theme-text-muted)] transition-all font-medium"
               placeholder="e.g. Design Team or John Doe"
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
@@ -136,7 +136,7 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
               </label>
               <input
                 type="date"
-                className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-3 py-2 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-sm"
+                className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-[var(--theme-border-strong)] rounded-xl px-3 py-2 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--theme-accent)]/20 transition-all font-medium text-sm"
                 value={createdAtStr}
                 onChange={(e) => setCreatedAtStr(e.target.value)}
               />
@@ -148,7 +148,7 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
               </label>
               <input
                 type="date"
-                className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl px-3 py-2 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-sm"
+                className="w-full bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-[var(--theme-border-strong)] rounded-xl px-3 py-2 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--theme-accent)]/20 transition-all font-medium text-sm"
                 value={dueDateStr}
                 onChange={(e) => setDueDateStr(e.target.value)}
               />
@@ -161,7 +161,7 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
                 <BarChart className="w-3.5 h-3.5 mr-1 opacity-70" />
                 Priority
               </label>
-              <div className="flex bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl p-1">
+              <div className="flex bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-[var(--theme-border-strong)] rounded-xl p-1">
                 {(["Low", "Medium", "High"] as const).map((p) => (
                   <button
                     key={p}
@@ -183,7 +183,7 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
               <label className="block text-xs font-bold text-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] mb-1.5">
                 Status
               </label>
-              <div className="flex bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-white/40 dark:border-[var(--theme-border)]/50 rounded-xl p-1">
+              <div className="flex bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-primary)]/50 backdrop-blur-md border border-[var(--theme-border-strong)] rounded-xl p-1">
                 {(["Pending", "Done"] as const).map((s) => (
                   <button
                     key={s}
@@ -193,7 +193,7 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
                       status === s
                         ? s === "Done"
                           ? "bg-emerald-100 text-[var(--theme-accent-text)] dark:text-[var(--theme-accent-text)] shadow-sm"
-                          : "bg-[var(--theme-bg-card)] dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                          : "bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-secondary)] text-[var(--theme-accent-text)] shadow-sm border border-[var(--theme-border-strong)]"
                         : "text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] dark:hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-secondary)]/50"
                     }`}
                   >
@@ -209,7 +209,7 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-sm font-bold rounded-xl text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-secondary)]/50 hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-card-hover)]/50 border border-white/50 transition-colors shadow-sm"
+            className="px-5 py-2 text-sm font-bold rounded-xl text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] bg-[var(--theme-bg-card)] dark:bg-[var(--theme-bg-secondary)]/50 hover:bg-[var(--theme-bg-card)] dark:hover:bg-[var(--theme-bg-card-hover)]/50 border border-[var(--theme-border-strong)] transition-colors shadow-sm"
           >
             Cancel
           </button>

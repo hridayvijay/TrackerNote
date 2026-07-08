@@ -196,16 +196,21 @@ export default function NotesDashboard({ user }: { user: User }) {
     });
   }, [groupedByAssignee.groups]);
 
-  const allUpcomingReminders = useMemo(() => {
+  const myTasks = useMemo(() => {
     return notes
-      .filter(
-        (n) =>
-          n.reminderTime &&
-          isFuture(new Date(n.reminderTime)) &&
-          n.status !== "Done",
-      )
-      .sort((a, b) => new Date(a.reminderTime!).getTime() - new Date(b.reminderTime!).getTime());
-  }, [notes]);
+      .filter((n) => {
+        if (n.status === "Done") return false;
+        const p = projects.find(proj => proj.id === n.projectId);
+        if (p?.assignee === user?.displayName) return true;
+        if (n.reminderTime && isFuture(new Date(n.reminderTime))) return true;
+        return false;
+      })
+      .sort((a, b) => {
+        const timeA = a.reminderTime ? new Date(a.reminderTime).getTime() : Number.MAX_SAFE_INTEGER;
+        const timeB = b.reminderTime ? new Date(b.reminderTime).getTime() : Number.MAX_SAFE_INTEGER;
+        return timeA - timeB;
+      });
+  }, [notes, projects, user]);
 
   const handleDeleteProject = (id: string) => {
     const project = projects.find(p => p.id === id);
@@ -241,22 +246,20 @@ export default function NotesDashboard({ user }: { user: User }) {
     <div className="h-full flex flex-col p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
         <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-          <h2 className="text-2xl font-bold tracking-tight flex items-center">
-            <LayoutDashboard className="w-6 h-6 mr-2 text-[var(--theme-accent-text)] text-[var(--theme-accent-text)]" />
-            Assignee Dashboard
-          </h2>
-          
-          {isOnline ? (
-            <div className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold text-[var(--theme-accent-text)] dark:text-[var(--theme-accent-text)] bg-[var(--theme-bg-secondary)] border border-emerald-500/25 rounded-full select-none" title="All changes are fully synchronized to the cloud and across devices">
-              <Wifi className="w-3.5 h-3.5 mr-1" />
-              <span>Synced & Live</span>
-            </div>
-          ) : (
-            <div className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/25 rounded-full select-none animate-pulse" title="Offline. Your changes are saved safely in your browser cache and will sync instantly upon connection">
-              <WifiOff className="w-3.5 h-3.5 mr-1" />
-              <span>Offline Mode (Autosaved)</span>
-            </div>
-          )}
+          <div className="dash-title-row">
+            <span className="dash-title flex items-center"><LayoutDashboard className="w-6 h-6 mr-2 text-[var(--theme-accent-text)]" /> Assignee Dashboard</span>
+            {isOnline ? (
+              <div className="synced-badge" title="All changes are fully synchronized to the cloud and across devices">
+                <div className="synced-dot"></div>
+                Synced & Live
+              </div>
+            ) : (
+              <div className="synced-badge border-amber-500/25 text-amber-600 dark:text-amber-400 bg-amber-500/10 animate-pulse" title="Offline. Your changes are saved safely in your browser cache and will sync instantly upon connection">
+                <div className="synced-dot bg-amber-500"></div>
+                Offline Mode (Autosaved)
+              </div>
+            )}
+          </div>
         </div>
 
         <button
@@ -268,19 +271,23 @@ export default function NotesDashboard({ user }: { user: User }) {
         </button>
       </div>
 
-      {allUpcomingReminders.length > 0 && (
-        <div className="mb-6 bg-[var(--theme-bg-primary)]/5 dark:bg-slate-100/5 border border-[var(--theme-border)] border-[var(--theme-border)] rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center shadow-inner">
-          <div className="flex items-center text-amber-600 dark:text-amber-500 font-bold shrink-0">
-            <AlertCircle className="w-5 h-5 mr-2" />
-            Upcoming Overview
+      <div className="my-tasks-section mb-6">
+          <div className="my-tasks-label">
+            My Tasks
+            <span className="mt-badge">{myTasks.length}</span>
           </div>
-          <div className="flex-1 overflow-x-auto flex space-x-3 pb-2 md:pb-0 scrollbar-hide snap-x">
-            {allUpcomingReminders.map((rem) => {
+          <div className="my-tasks-row flex-1 overflow-x-auto flex space-x-3 pb-2 scrollbar-hide snap-x">
+            {myTasks.length === 0 && (
+              <div className="text-[10px] text-[var(--theme-text-muted)] italic py-2">
+                No tasks assigned to you.
+              </div>
+            )}
+            {myTasks.map((rem) => {
               const project = projects.find((p) => p.id === rem.projectId);
               return (
                 <div
                   key={rem.id}
-                  className="min-w-[200px] shrink-0 snap-end bg-[var(--theme-bg-card)] bg-[var(--theme-bg-card)] backdrop-blur-md px-3 py-2 rounded-xl border border-[var(--theme-border)] border-[var(--theme-border)] shadow-sm flex flex-col cursor-pointer transition-colors hover:bg-[var(--theme-bg-card-hover)] text-xs"
+                  className="mt-card shrink-0 snap-end cursor-pointer transition-colors hover:bg-[var(--theme-bg-card-hover)]"
                   onClick={() =>
                     setNoteFormProps({
                       open: true,
@@ -296,17 +303,18 @@ export default function NotesDashboard({ user }: { user: User }) {
                     <span className="truncate">
                       {project?.title || "Unknown"}
                     </span>
-                    <span className="text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center shrink-0">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {format(new Date(rem.reminderTime!), "MMM d, h:mm")}
-                    </span>
+                    {rem.reminderTime && (
+                      <span className="text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center shrink-0">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {format(new Date(rem.reminderTime), "MMM d, h:mm")}
+                      </span>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
-      )}
 
       {error && (
         <div className="mb-6 bg-red-50/80 backdrop-blur-md border border-red-200/50 text-red-700 p-4 rounded-xl text-sm font-medium">
@@ -347,7 +355,7 @@ export default function NotesDashboard({ user }: { user: User }) {
             </p>
           </div>
         ) : (
-          <div className="flex h-full space-x-6 px-2 snap-x snap-mandatory items-start">
+          <div className="kanban flex h-full gap-4 px-2 items-start">
             <AnimatePresence>
             {groupsToRender.map(([assignee, assigneeProjects], colIndex) => (
               <motion.div
@@ -357,7 +365,7 @@ export default function NotesDashboard({ user }: { user: User }) {
                 exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)", transition: { duration: 0.2 } }}
                 transition={{ duration: 0.4, delay: colIndex * 0.08, ease: "easeOut" }}
                 key={assignee}
-                className="min-w-[340px] max-w-[340px] shrink-0 snap-center flex flex-col h-full bg-[var(--theme-bg-card)] backdrop-blur-lg border border-[var(--theme-border)] rounded-3xl p-4 transition-colors hover:bg-[var(--theme-bg-card-hover)]"
+                className="col min-w-[280px] w-[280px] shrink-0 flex flex-col h-full bg-[var(--theme-bg-card)] backdrop-blur-lg border border-[var(--theme-border-strong)] rounded-3xl p-4 transition-colors"
                 onDragOver={(e: any) => e.preventDefault()}
                 onDrop={(e: any) => handleDropProject(e, assignee)}
               >
@@ -386,7 +394,7 @@ export default function NotesDashboard({ user }: { user: User }) {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 rounded-lg pb-10 space-y-4">
+                <div className="flex-1 overflow-y-auto pr-2 pb-10">
                   <AnimatePresence>
                   {assigneeProjects.map((proj, projIndex) => (
                     <ProjectCard
@@ -420,7 +428,7 @@ export default function NotesDashboard({ user }: { user: User }) {
                         const { onToggleStatus } = await import("../services");
                         await onToggleStatus(note);
                       }}
-                      onDropNote={(noteId, toProjectId) =>
+                      onMoveNote={(noteId, toProjectId) =>
                         updateSyncNote(noteId, { projectId: toProjectId })
                       }
                     />
@@ -429,6 +437,11 @@ export default function NotesDashboard({ user }: { user: User }) {
                 </div>
               </motion.div>
             ))}
+              <div className="col shrink-0 flex items-start pt-1 opacity-40 hover:opacity-100 transition-opacity bg-[var(--theme-bg-card)] backdrop-blur-lg border border-[var(--theme-border-strong)] rounded-3xl p-4" style={{ minWidth: '60px' }}>
+                <div className="text-[var(--theme-accent)] text-xs mt-5 cursor-pointer font-bold tracking-widest" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+                  + ADD STAKEHOLDER
+                </div>
+              </div>
             </AnimatePresence>
             <div className="w-4 shrink-0 h-1" />
           </div>
@@ -467,7 +480,7 @@ export default function NotesDashboard({ user }: { user: User }) {
         onCancel={() => setDeleteModalProps({ ...deleteModalProps, open: false })}
       />
       
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+      <div className="fixed bottom-6 right-6 z-40">
         <VoiceNoteCreator
           existingStakeholders={Array.from(new Set(projects.map(p => p.assignee).filter((a): a is string => Boolean(a))))}
           onParsed={(parsedData) => {

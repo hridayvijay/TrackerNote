@@ -32,6 +32,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [interimText, setInterimText] = useState("");
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [transcriptionSupported, setTranscriptionSupported] = useState(true);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -46,7 +47,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   useEffect(() => { geminiKeyRef.current = geminiKey; }, [geminiKey]);
 
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setTranscriptionSupported(false);
       return;
@@ -173,9 +174,20 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         if (MediaRecorder.isTypeSupported('audio/webm')) options.mimeType = 'audio/webm';
         else if (MediaRecorder.isTypeSupported('audio/mp4')) options.mimeType = 'audio/mp4';
       }
-      const mediaRecorder = new MediaRecorder(stream, options);
+            const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 256;
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyserNode);
+        setAnalyser(analyserNode);
+      } catch(e) {
+        console.error("AudioContext error", e);
+      }
 
       setAudioStream(stream);
 
@@ -260,7 +272,8 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
           audioBase64: b64,
           mimeType: mimeType,
           displayName: displayName,
-          geminiApiKey: geminiKeyRef.current
+          geminiApiKey: geminiKeyRef.current,
+          transcript: interimText
         })
       });
 
@@ -406,7 +419,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
             <VoiceOrb 
               state={isParsing ? "parsing" : isRecording ? "recording" : "idle"}
               onClick={handleMicClick}
-              audioStream={audioStream}
+              analyser={analyser}
             />
           </div>
           

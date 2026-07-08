@@ -1,20 +1,20 @@
-import React, { useState } from "react";
+const fs = require('fs');
+
+const content = `import React, { useState } from "react";
 import { format } from "date-fns";
 import {
   Trash2,
   Edit2
 } from "lucide-react";
 import { cn } from "../lib/utils";
-import { SyncProject, SyncNote } from "../types";
+import { SyncProject, SyncNote } from "../services";
 import { motion, AnimatePresence } from "motion/react";
 
 interface ProjectCardProps {
-  key?: string | number;
   project: SyncProject;
   notes: SyncNote[];
   index: number;
   currentUserDisplayName: string;
-  onAddNote: (projectId: string) => void;
   onEditProject: (p: SyncProject) => void;
   onDeleteProject: (id: string) => void;
   onToggleNoteStatus: (n: SyncNote) => void;
@@ -28,7 +28,6 @@ export default function ProjectCard({
   notes,
   index,
   currentUserDisplayName,
-  onAddNote,
   onEditProject,
   onDeleteProject,
   onToggleNoteStatus,
@@ -73,17 +72,10 @@ export default function ProjectCard({
         draggable
         onDragStart={(e) => e.dataTransfer.setData("projectId", project.id)}
       >
-        <div className="flex-1 min-w-0 pr-2">
-          <div className="truncate">{project.title}</div>
-          <div className="flex gap-2 text-[9px] opacity-70 mt-1 font-normal">
-            {project.dueDate && <span>{format(new Date(project.dueDate), "MMM d")}</span>}
-            {project.priority && <span>{project.priority}</span>}
-          </div>
-        </div>
-        <div className="proj-actions opacity-0 group-hover:opacity-100 transition-opacity flex items-center shrink-0">
-          <span className="proj-action cursor-pointer hover:text-green-400 p-1" onClick={(e) => { e.stopPropagation(); onAddNote(project.id); }} title="Add Note">➕</span>
-          <span className="proj-action cursor-pointer hover:text-blue-400 p-1" onClick={(e) => { e.stopPropagation(); onEditProject(project); }} title="Edit Project">✎</span>
-          <span className="proj-action cursor-pointer hover:text-red-400 p-1" onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }} title="Delete Project">⋯</span>
+        {project.title}
+        <div className="proj-actions opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="proj-action cursor-pointer hover:text-blue-400" onClick={(e) => { e.stopPropagation(); onEditProject(project); }}>✎</span>
+          <span className="proj-action cursor-pointer hover:text-red-400" onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }}>⋯</span>
         </div>
       </div>
 
@@ -131,16 +123,16 @@ export default function ProjectCard({
   );
 }
 
-const NoteItem: React.FC<{
-  note: SyncNote;
-  onToggleStatus: () => void;
-  onEditNote: () => void;
-  onDeleteNote: () => void;
-}> = ({
+const NoteItem = ({
   note,
   onToggleStatus,
   onEditNote,
   onDeleteNote,
+}: {
+  note: SyncNote;
+  onToggleStatus: () => void;
+  onEditNote: () => void;
+  onDeleteNote: () => void;
 }) => {
   const isDone = note.status === "Done";
   
@@ -163,17 +155,17 @@ const NoteItem: React.FC<{
       }}
     >
       <div 
-        className={`note-status ${isDone ? 'done' : 'pending'} cursor-pointer`}
+        className={\`note-status \${isDone ? 'done' : 'pending'} cursor-pointer\`}
         onClick={onToggleStatus}
       >
         {isDone ? "✓" : ""}
       </div>
       <div className="note-body">
-        <div className={`note-text ${isDone ? 'done-text' : ''}`}>
+        <div className={\`note-text \${isDone ? 'done-text' : ''}\`}>
           {note.content}
         </div>
         <div className="note-meta mt-1">
-          {note.priority && <span className={`pri-badge ${priorityClass}`}>{note.priority}</span>}
+          {note.priority && <span className={\`pri-badge \${priorityClass}\`}>{note.priority}</span>}
           {note.dueDate && (
             <span className="due-tag">
               ⏰ {format(new Date(note.dueDate), "MMM d")}
@@ -192,3 +184,7 @@ const NoteItem: React.FC<{
     </motion.div>
   );
 };
+`;
+
+fs.writeFileSync('src/components/ProjectCard.tsx', content);
+
