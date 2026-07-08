@@ -203,7 +203,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
             setIsParsing(false);
             return;
           }
-          await processAudio(base64data, actualMimeType);
+          await processAudio(base64data, actualMimeType, key);
         };
         stream.getTracks().forEach((track) => track.stop());
         setAudioStream(null);
@@ -232,7 +232,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     }
   };
 
-  const processAudio = async (base64data: string, mimeType: string = 'audio/webm') => {
+  const processAudio = async (base64data: string, mimeType: string = 'audio/webm', activeKey: string | null = null) => {
     try {
       const authUser = auth.currentUser;
       if (!authUser) throw new Error("Not authenticated");
@@ -257,7 +257,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
           audioBase64: b64,
           mimeType: mimeType,
           displayName: displayName,
-          geminiApiKey: geminiKey
+          geminiApiKey: activeKey || geminiKey
         })
       });
 
