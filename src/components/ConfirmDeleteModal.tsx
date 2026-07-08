@@ -56,7 +56,7 @@ export default function ConfirmDeleteModal({
                     onConfirm();
                     onCancel();
                   }}
-                  className="flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm bg-red-600 hover:bg-red-700 text-[var(--theme-text-primary)] shadow-lg shadow-red-500/20 transition-colors"
+                  className="flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 transition-colors"
                 >
                   Delete
                 </button>

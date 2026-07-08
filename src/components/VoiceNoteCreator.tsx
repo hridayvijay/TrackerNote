@@ -40,6 +40,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const timerRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
   const isRecordingRef = useRef(false);
+  const isInitializingMicRef = useRef(false);
   const finalTranscriptRef = useRef('');
 
   const [geminiKey, setGeminiKey] = useState<string | null>(null);
@@ -79,7 +80,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
     recognition.onend = () => {
       console.log("SpeechRecognition onend fired");
-      if (isRecordingRef.current) {
+      if (isRecordingRef.current || isInitializingMicRef.current) {
         try { recognition.start(); } catch(e){}
       }
     };
@@ -150,13 +151,13 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     geminiKeyRef.current = key;
 
     try {
-            if (transcriptionSupported && recognitionRef.current) {
+            isInitializingMicRef.current = true;
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      if (isSafari && transcriptionSupported && recognitionRef.current) {
         finalTranscriptRef.current = '';
         try {
           recognitionRef.current.start();
-        } catch(e) {
-          console.error("Failed to start SpeechRecognition:", e);
-        }
+        } catch(e) {}
       }
 
       let stream: MediaStream;
@@ -164,11 +165,17 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         console.log('2. getUserMedia resolved');
       } catch (e) {
+        isInitializingMicRef.current = false;
         setErrorType("mic");
         setErrorMessage("Microphone permission denied.");
         return;
       }
 
+      if (!isSafari && transcriptionSupported && recognitionRef.current) {
+        finalTranscriptRef.current = '';
+        try { recognitionRef.current.start(); } catch(e){}
+      }
+      
       let options: any = { audioBitsPerSecond: 32000 };
       if (typeof MediaRecorder.isTypeSupported === 'function') {
         if (MediaRecorder.isTypeSupported('audio/webm')) options.mimeType = 'audio/webm';
@@ -227,9 +234,12 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       mediaRecorder.start(100);
       setIsRecording(true);
       isRecordingRef.current = true;
+      isInitializingMicRef.current = false;
+      
       startTimer();
     } catch (err: any) {
       console.error("Recording error:", err);
+      isInitializingMicRef.current = false;
       setErrorType("permission");
       setErrorMessage(err.message || "Microphone access denied.");
     }
@@ -376,7 +386,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
       {/* Main Mic Button / Recorder UI */}
       {errorType === "none" && (
-        <div className="relative flex flex-col items-center" style={{ position: 'relative' }}>
+        <div className="relative flex flex-col items-center justify-center w-full" style={{ position: 'relative' }}>
           
           <KineticTranscription transcript={interimText} isRecording={isRecording} />
 
@@ -415,7 +425,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
             )}
           </AnimatePresence>
 
-          <div className="relative z-10">
+          <div className="relative z-10 flex justify-center w-full">
             <VoiceOrb 
               state={isParsing ? "parsing" : isRecording ? "recording" : "idle"}
               onClick={handleMicClick}

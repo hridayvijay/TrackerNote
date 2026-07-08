@@ -240,7 +240,14 @@ export default function NotesDashboard({ user }: { user: User }) {
   };
 
   const handleDeleteAssigneeCategory = (category: string) => {
-    setRetainedAssignees(prev => prev.filter(c => c !== category));
+    setDeleteModalProps({
+      open: true,
+      itemName: `Category "${category}"`,
+      onConfirm: () => {
+        setRetainedAssignees(prev => prev.filter(c => c !== category));
+        setDeleteModalProps({ open: false, itemName: "", onConfirm: () => {} });
+      }
+    });
   };
 
   return (
@@ -265,7 +272,7 @@ export default function NotesDashboard({ user }: { user: User }) {
 
         <button
           onClick={() => setProjectFormProps({ open: true })}
-          className="flex items-center justify-center bg-[var(--theme-accent)] text-[var(--theme-text-primary)] px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[var(--theme-accent)] shadow-lg shadow-indigo-500/30 transition-all active:scale-95"
+          className="flex items-center justify-center bg-[var(--theme-accent)] text-[var(--theme-bg-primary)] px-5 py-2.5 rounded-xl text-sm font-bold hover:brightness-110 shadow-lg shadow-[var(--theme-accent)]/30 transition-all active:scale-95"
         >
           <Plus className="w-5 h-5 mr-1.5" />
           New Project
@@ -452,11 +459,6 @@ export default function NotesDashboard({ user }: { user: User }) {
                 </div>
               </motion.div>
             ))}
-              <div className="col shrink-0 flex items-start pt-1 opacity-40 hover:opacity-100 transition-opacity bg-[var(--theme-bg-card)] backdrop-blur-lg border border-[var(--theme-border-strong)] rounded-3xl p-4" style={{ minWidth: '60px' }}>
-                <div className="text-[var(--theme-accent)] text-xs mt-5 cursor-pointer font-bold tracking-widest" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
-                  + ADD STAKEHOLDER
-                </div>
-              </div>
             </AnimatePresence>
             <div className="w-4 shrink-0 h-1" />
           </div>
@@ -495,7 +497,7 @@ export default function NotesDashboard({ user }: { user: User }) {
         onCancel={() => setDeleteModalProps({ ...deleteModalProps, open: false })}
       />
       
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
         <VoiceNoteCreator
           existingStakeholders={Array.from(new Set(projects.map(p => p.assignee).filter((a): a is string => Boolean(a))))}
           onParsed={(parsedData) => {
