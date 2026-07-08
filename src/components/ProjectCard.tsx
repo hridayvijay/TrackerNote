@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { format } from "date-fns";
 import {
-  Trash2,
+  Plus, Trash2,
   Edit2
 } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -75,15 +75,15 @@ export default function ProjectCard({
       >
         <div className="flex-1 min-w-0 pr-2">
           <div className="truncate">{project.title}</div>
-          <div className="flex gap-2 text-[9px] opacity-70 mt-1 font-normal">
-            {project.dueDate && <span>{format(new Date(project.dueDate), "MMM d")}</span>}
-            {project.priority && <span>{project.priority}</span>}
+          <div className="flex gap-2 text-[9px] mt-1.5 font-normal">
+            {project.dueDate && <span className="due-tag">⏰ {format(new Date(project.dueDate), "MMM d")}</span>}
+            {project.priority && <span className={`pri-badge ${project.priority === 'High' ? 'pri-high' : project.priority === 'Medium' ? 'pri-med' : 'pri-low'}`}>{project.priority}</span>}
           </div>
         </div>
-        <div className="proj-actions opacity-0 group-hover:opacity-100 transition-opacity flex items-center shrink-0">
-          <span className="proj-action cursor-pointer hover:text-green-400 p-1" onClick={(e) => { e.stopPropagation(); onAddNote(project.id); }} title="Add Note">➕</span>
-          <span className="proj-action cursor-pointer hover:text-blue-400 p-1" onClick={(e) => { e.stopPropagation(); onEditProject(project); }} title="Edit Project">✎</span>
-          <span className="proj-action cursor-pointer hover:text-red-400 p-1" onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }} title="Delete Project">⋯</span>
+        <div className="proj-actions opacity-0 group-hover:opacity-100 transition-opacity flex items-center shrink-0 gap-1">
+          <span className="proj-action cursor-pointer hover:text-[var(--theme-accent-text)] p-1" onClick={(e) => { e.stopPropagation(); onAddNote(project.id); }} title="Add Note"><Plus className="w-3.5 h-3.5" /></span>
+          <span className="proj-action cursor-pointer hover:text-[var(--theme-accent-text)] p-1" onClick={(e) => { e.stopPropagation(); onEditProject(project); }} title="Edit Project"><Edit2 className="w-3 h-3" /></span>
+          <span className="proj-action cursor-pointer hover:text-red-400 p-1" onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }} title="Delete Project"><Trash2 className="w-3.5 h-3.5" /></span>
         </div>
       </div>
 
@@ -156,11 +156,6 @@ const NoteItem: React.FC<{
       exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
       transition={{ duration: 0.2 }}
       className="note-item group"
-      draggable
-      onDragStart={(e: any) => {
-        e.stopPropagation();
-        e.dataTransfer.setData("noteId", note.id);
-      }}
     >
       <div 
         className={`note-status ${isDone ? 'done' : 'pending'} cursor-pointer`}
@@ -182,7 +177,7 @@ const NoteItem: React.FC<{
         </div>
       </div>
       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0 self-start mt-1">
-        <button onClick={onEditNote} className="text-[var(--theme-text-muted)] hover:text-blue-400">
+        <button onClick={onEditNote} className="text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)]">
           <Edit2 className="w-3 h-3" />
         </button>
         <button onClick={onDeleteNote} className="text-[var(--theme-text-muted)] hover:text-red-400">

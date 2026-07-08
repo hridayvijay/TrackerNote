@@ -150,23 +150,23 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     geminiKeyRef.current = key;
 
     try {
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log('2. getUserMedia resolved, starting recognition');
-      } catch (e) {
-        setErrorType("mic");
-        setErrorMessage("Microphone permission denied.");
-        return;
-      }
-
-      if (transcriptionSupported && recognitionRef.current) {
+            if (transcriptionSupported && recognitionRef.current) {
         finalTranscriptRef.current = '';
         try {
           recognitionRef.current.start();
         } catch(e) {
           console.error("Failed to start SpeechRecognition:", e);
         }
+      }
+
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('2. getUserMedia resolved');
+      } catch (e) {
+        setErrorType("mic");
+        setErrorMessage("Microphone permission denied.");
+        return;
       }
 
       let options: any = { audioBitsPerSecond: 32000 };

@@ -7,9 +7,10 @@ import { format } from "date-fns";
 interface ProjectFormProps {
   onClose: () => void;
   project?: SyncProject | null;
+  defaultAssignee?: string;
 }
 
-export default function ProjectForm({ onClose, project }: ProjectFormProps) {
+export default function ProjectForm({ onClose, project, defaultAssignee }: ProjectFormProps) {
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState("");
   const [createdAtStr, setCreatedAtStr] = useState("");
@@ -33,6 +34,9 @@ export default function ProjectForm({ onClose, project }: ProjectFormProps) {
       }
     } else {
       setCreatedAtStr(format(new Date(), "yyyy-MM-dd"));
+      if (defaultAssignee && defaultAssignee !== 'Unassigned') {
+        setAssignee(defaultAssignee);
+      }
     }
   }, [project]);
 

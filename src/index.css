@@ -210,26 +210,31 @@ body {
   border-radius: 4px;
 }
 .pri-high {
-  background: rgba(253,231,37,0.1);
-  border: 0.5px solid rgba(253,231,37,0.35);
-  color: rgba(253,231,37,0.9);
+  background: rgba(239, 68, 68, 0.15);
+  border: 0.5px solid rgba(239, 68, 68, 0.4);
+  color: rgba(239, 68, 68, 0.9);
 }
 .pri-med {
-  background: var(--theme-bg-primary);
-  border: 0.5px solid var(--theme-border);
-  color: var(--theme-accent);
+  background: rgba(245, 158, 11, 0.15);
+  border: 0.5px solid rgba(245, 158, 11, 0.4);
+  color: rgba(245, 158, 11, 0.9);
 }
 .pri-low {
-  background: rgba(49,104,142,0.15);
-  border: 0.5px solid rgba(49,104,142,0.35);
-  color: rgba(49,104,142,0.9);
+  background: rgba(34, 197, 94, 0.15);
+  border: 0.5px solid rgba(34, 197, 94, 0.4);
+  color: rgba(34, 197, 94, 0.9);
 }
 .due-tag {
   font-size: 9px;
-  color: var(--theme-text-muted);
+  background: rgba(217, 119, 6, 0.15);
+  border: 0.5px solid rgba(217, 119, 6, 0.3);
+  color: rgba(217, 119, 6, 0.9);
+  padding: 1px 5px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   gap: 2px;
+  font-weight: 500;
 }
 
 .orb-ring {

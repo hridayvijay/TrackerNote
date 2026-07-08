@@ -83,12 +83,12 @@ export default function VoiceOrb({ state, onClick, analyser }: VoiceOrbProps) {
     function drawRecord(cx: number, cy: number, r: number, t: number, amp: number) {
       if (!ctx) return;
       ctx.fillStyle = 'rgba(0,0,0,0.82)'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-      const orbitR = r * (0.08 + amp * 0.62);
+      const orbitR = r * (0.05 + amp * 0.4);
       const blobs = [
-        { a: t * 0.18, sz: r * (0.52 + amp * 0.38), col: safeColors[0] },
-        { a: t * 0.18 + 1.57, sz: r * (0.48 + amp * 0.42), col: safeColors[1] },
-        { a: t * 0.18 + 3.14, sz: r * (0.52 + amp * 0.35), col: safeColors[2] },
-        { a: t * 0.18 + 4.71, sz: r * (0.44 + amp * 0.46), col: safeColors[3] }
+        { a: t * 0.18, sz: r * (0.4 + amp * 0.3), col: safeColors[0] },
+        { a: t * 0.18 + 1.57, sz: r * (0.35 + amp * 0.3), col: safeColors[1] },
+        { a: t * 0.18 + 3.14, sz: r * (0.4 + amp * 0.25), col: safeColors[2] },
+        { a: t * 0.18 + 4.71, sz: r * (0.3 + amp * 0.35), col: safeColors[3] }
       ];
       blobs.forEach(b => {
         const x = cx + Math.cos(b.a) * orbitR;
@@ -98,37 +98,41 @@ export default function VoiceOrb({ state, onClick, analyser }: VoiceOrbProps) {
         g.addColorStop(1, hexToRgba(b.col, 0));
         ctx.beginPath(); ctx.arc(x, y, b.sz, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
       });
-      if (amp > 0.72) {
-        const burst = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * (amp - 0.3));
-        burst.addColorStop(0, hexToRgba(safeColors[3], (amp - 0.72) * 1.8 * 0.35));
-        burst.addColorStop(1, hexToRgba(safeColors[3], 0));
+      if (amp > 0.8) {
+        const burst = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.8);
+        burst.addColorStop(0, hexToRgba(safeColors[3], (amp - 0.8) * 0.2));
+        burst.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = burst; ctx.fill();
       }
     }
 
     function drawParse(cx: number, cy: number, r: number, t: number) {
       if (!ctx) return;
-      ctx.fillStyle = 'rgba(0,0,0,0.88)'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
       
-      // Fluid pulsing orb for parsing
-      const pulse = Math.sin(t * 3) * 0.1 + 0.9;
+      const pulse = Math.sin(t * 4) * 0.15 + 0.85; // Breathes more prominently
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * pulse);
-      g.addColorStop(0, hexToRgba(safeColors[0], 0.6));
-      g.addColorStop(0.5, hexToRgba(safeColors[1], 0.3));
+      g.addColorStop(0, hexToRgba(safeColors[0], 0.7));
+      g.addColorStop(0.6, hexToRgba(safeColors[1], 0.4));
       g.addColorStop(1, 'rgba(0,0,0,0)');
       
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
 
-      // Spinning ring
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(t * 2);
-      const ring = ctx.createRadialGradient(0, 0, r * 0.7, 0, 0, r * 0.9);
-      ring.addColorStop(0, 'rgba(0,0,0,0)');
-      ring.addColorStop(0.5, hexToRgba(safeColors[2], 0.8));
-      ring.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2); ctx.fillStyle = ring; ctx.fill();
-      ctx.restore();
+      // Tumble in a loading circle
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        const speed = 2 + i * 0.5;
+        ctx.rotate(t * speed + (i * Math.PI * 2) / 3);
+        const wobble = Math.sin(t * 2 + i) * 10;
+        const dotR = r * 0.2 + Math.sin(t * 5 + i) * 5;
+        
+        ctx.beginPath();
+        ctx.arc(r * 0.5 + wobble, 0, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = hexToRgba(safeColors[i % safeColors.length], 0.8);
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     function renderV() {

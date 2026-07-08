@@ -486,7 +486,7 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center px-5 py-1.5 shadow-lg shadow-[var(--theme-accent)]/30 text-sm font-bold rounded-xl text-white bg-[var(--theme-accent)] hover:bg-[var(--theme-accentHover)] focus:outline-none transition-all disabled:opacity-50"
+              className="inline-flex items-center px-5 py-1.5 shadow-lg shadow-[var(--theme-accent)]/30 text-sm font-bold rounded-xl text-white bg-[var(--theme-accent)] hover:brightness-110 focus:outline-none transition-all disabled:opacity-50"
             >
               {loading ? (
                 "Saving..."

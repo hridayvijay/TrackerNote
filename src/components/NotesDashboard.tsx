@@ -17,7 +17,7 @@ import VoiceNoteCreator, { ParsedNoteData } from "./VoiceNoteCreator";
 import ParsedNoteConfirmation from "./ParsedNoteConfirmation";
 import ReminderSystem from "./ReminderSystem";
 import { Plus, Users, LayoutDashboard, Clock, AlertCircle, Trash2, Wifi, WifiOff } from "lucide-react";
-import { isFuture, format } from "date-fns";
+import { isFuture, format, formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "motion/react";
 
 import { collection, getDocs } from "firebase/firestore";
@@ -84,6 +84,7 @@ export default function NotesDashboard({ user }: { user: User }) {
   const [projectFormProps, setProjectFormProps] = useState<{
     open: boolean;
     project?: SyncProject | null;
+    defaultAssignee?: string;
   }>({ open: false });
   const [noteFormProps, setNoteFormProps] = useState<{
     open: boolean;
@@ -296,18 +297,25 @@ export default function NotesDashboard({ user }: { user: User }) {
                     })
                   }
                 >
-                  <span className="font-bold text-slate-800 text-[var(--theme-text-primary)] truncate">
+                  <span className="font-bold text-slate-800 text-[var(--theme-text-primary)] truncate text-xs uppercase tracking-wide opacity-80">
+                    {project?.title || "Unknown Project"}
+                  </span>
+                  <span className="font-medium text-[var(--theme-text-primary)] truncate mt-0.5">
                     {rem.content}
                   </span>
                   <div className="flex justify-between items-center mt-1.5 space-x-2 text-[10px] text-[var(--theme-text-secondary)] font-bold uppercase tracking-wider">
-                    <span className="truncate">
-                      {project?.title || "Unknown"}
-                    </span>
-                    {rem.reminderTime && (
-                      <span className="text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center shrink-0">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {format(new Date(rem.reminderTime), "MMM d, h:mm")}
-                      </span>
+                    {rem.reminderTime ? (
+                      <>
+                        <span className="text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center shrink-0">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {format(new Date(rem.reminderTime), "MMM d, h:mm")}
+                        </span>
+                        <span className="truncate opacity-70">
+                           {isFuture(new Date(rem.reminderTime)) ? `In ${formatDistanceToNow(new Date(rem.reminderTime))}` : `${formatDistanceToNow(new Date(rem.reminderTime))} ago`}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="opacity-50">No deadline</span>
                     )}
                   </div>
                 </div>
@@ -327,6 +335,7 @@ export default function NotesDashboard({ user }: { user: User }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--theme-bg-primary)]/50 backdrop-blur-sm p-4">
           <ProjectForm
             project={projectFormProps.project}
+            defaultAssignee={projectFormProps.defaultAssignee}
             onClose={() => setProjectFormProps({ open: false, project: null })}
           />
         </div>
@@ -343,7 +352,7 @@ export default function NotesDashboard({ user }: { user: User }) {
       )}
 
       {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-4">
         {projects.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center glass-panel rounded-3xl mx-auto max-w-lg mt-10 p-10">
             <div className="w-20 h-20 bg-[var(--theme-accent)] dark:bg-[var(--theme-accent)]/50 rounded-full flex items-center justify-center mb-6">
@@ -355,7 +364,7 @@ export default function NotesDashboard({ user }: { user: User }) {
             </p>
           </div>
         ) : (
-          <div className="kanban flex h-full gap-4 px-2 items-start">
+          <div className="kanban flex flex-wrap gap-4 px-2 items-start">
             <AnimatePresence>
             {groupsToRender.map(([assignee, assigneeProjects], colIndex) => (
               <motion.div
@@ -365,7 +374,7 @@ export default function NotesDashboard({ user }: { user: User }) {
                 exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)", transition: { duration: 0.2 } }}
                 transition={{ duration: 0.4, delay: colIndex * 0.08, ease: "easeOut" }}
                 key={assignee}
-                className="col min-w-[280px] w-[280px] shrink-0 flex flex-col h-full bg-[var(--theme-bg-card)] backdrop-blur-lg border border-[var(--theme-border-strong)] rounded-3xl p-4 transition-colors"
+                className="col min-w-[280px] w-[280px] shrink-0 flex flex-col bg-[var(--theme-bg-card)] backdrop-blur-lg border border-[var(--theme-border-strong)] rounded-3xl p-4 transition-colors"
                 onDragOver={(e: any) => e.preventDefault()}
                 onDrop={(e: any) => handleDropProject(e, assignee)}
               >
@@ -394,7 +403,7 @@ export default function NotesDashboard({ user }: { user: User }) {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto pr-2 pb-10">
+                <div className="flex-1 pr-2 pb-2">
                   <AnimatePresence>
                   {assigneeProjects.map((proj, projIndex) => (
                     <ProjectCard
@@ -434,6 +443,12 @@ export default function NotesDashboard({ user }: { user: User }) {
                     />
                   ))}
                   </AnimatePresence>
+                  <button 
+                    onClick={() => setProjectFormProps({ open: true, project: null, defaultAssignee: assignee })} 
+                    className="w-full mt-2 py-3 rounded-2xl border border-dashed border-[var(--theme-accent)]/30 bg-[var(--theme-accent)]/5 hover:bg-[var(--theme-accent)]/15 hover:border-[var(--theme-accent)]/60 text-[var(--theme-accent-text)] flex items-center justify-center opacity-70 hover:opacity-100 transition-all group"
+                  >
+                    <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  </button>
                 </div>
               </motion.div>
             ))}
