@@ -227,6 +227,8 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
   const safeColors = orbColors?.length === 4 ? orbColors : ['#c084fc','#8B2FE8','#0CB8E8','#ff375f'];
 
   const reqIdRef = useRef<number>(0);
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
@@ -300,9 +302,9 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
 
       // Map string state to shader states
       let activeStateId = 0;
-      if (state === "idle") activeStateId = 0;
-      else if (state === "recording") activeStateId = 1;
-      else if (state === "parsing") activeStateId = 2;
+      if (stateRef.current === "idle") activeStateId = 0;
+      else if (stateRef.current === "recording") activeStateId = 1;
+      else if (stateRef.current === "parsing") activeStateId = 2;
 
       targetState = activeStateId;
       mat.uniforms.u_state.value = THREE.MathUtils.lerp(mat.uniforms.u_state.value, targetState, 0.1);
@@ -316,7 +318,7 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
       mat.uniforms.u_weights.value.lerp(targetWeights, 0.08);
 
       let targetAmplitude = 0.0;
-      if (state === "recording" && analyserRef.current && dataArrayRef.current) {
+      if (stateRef.current === "recording" && analyserRef.current && dataArrayRef.current) {
         analyserRef.current.getByteFrequencyData(dataArrayRef.current);
         let sum = 0;
         // Focus heavily on voice frequencies (approx first 20 bins for 256 fftSize)
@@ -328,16 +330,16 @@ export default function VoiceOrb({ state, onClick, audioStream }: VoiceOrbProps)
 
       mat.uniforms.u_amplitude.value = THREE.MathUtils.lerp(mat.uniforms.u_amplitude.value, targetAmplitude, 0.4);
 
-      if (state === "idle") {
+      if (stateRef.current === "idle") {
         m.rotation.y += 0.0018;
         mat.uniforms.u_time.value += 0.007;
         m.scale.setScalar(THREE.MathUtils.lerp(m.scale.x, 1.0, 0.08));
-      } else if (state === "recording") {
+      } else if (stateRef.current === "recording") {
         m.rotation.y = 0; // locked
         mat.uniforms.u_time.value += 0.015 + mat.uniforms.u_amplitude.value * 0.018;
         const s = 1.0 + mat.uniforms.u_amplitude.value * 0.35;
         m.scale.setScalar(THREE.MathUtils.lerp(m.scale.x, s, 0.25));
-      } else if (state === "parsing") {
+      } else if (stateRef.current === "parsing") {
         m.rotation.y = 0;
         mat.uniforms.u_time.value += 0.011;
         const b = Math.sin(Date.now() * 0.0018) * 0.08 + 1.0;

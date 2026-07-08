@@ -42,6 +42,8 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const finalTranscriptRef = useRef('');
 
   const [geminiKey, setGeminiKey] = useState<string | null>(null);
+  const geminiKeyRef = useRef<string | null>(null);
+  useEffect(() => { geminiKeyRef.current = geminiKey; }, [geminiKey]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -144,6 +146,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       return;
     }
     setGeminiKey(key);
+    geminiKeyRef.current = key;
 
     try {
       let stream: MediaStream;
@@ -203,7 +206,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
             setIsParsing(false);
             return;
           }
-          await processAudio(base64data, actualMimeType, key);
+          await processAudio(base64data, actualMimeType);
         };
         stream.getTracks().forEach((track) => track.stop());
         setAudioStream(null);
@@ -232,7 +235,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     }
   };
 
-  const processAudio = async (base64data: string, mimeType: string = 'audio/webm', activeKey: string | null = null) => {
+  const processAudio = async (base64data: string, mimeType: string = 'audio/webm') => {
     try {
       const authUser = auth.currentUser;
       if (!authUser) throw new Error("Not authenticated");
@@ -257,7 +260,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
           audioBase64: b64,
           mimeType: mimeType,
           displayName: displayName,
-          geminiApiKey: activeKey || geminiKey
+          geminiApiKey: geminiKeyRef.current
         })
       });
 
