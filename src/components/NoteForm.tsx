@@ -92,6 +92,27 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      const recorder = mediaRecorderRef.current;
+      if (recorder) {
+        recorder.ondataavailable = null;
+        recorder.onstop = null;
+        if (recorder.state !== "inactive") recorder.stop();
+        recorder.stream.getTracks().forEach((track) => track.stop());
+      }
+      recognitionRef.current?.abort();
+      if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+      if (audioContextRef.current?.state !== "closed") {
+        audioContextRef.current?.close().catch(() => {});
+      }
+      audioChunksRef.current = [];
+      mediaRecorderRef.current = null;
+      audioContextRef.current = null;
+      analyserRef.current = null;
+    };
+  }, []);
+
   const startRecording = async () => {
     setError("");
     const hasKey = await checkGeminiKey();
@@ -181,9 +202,10 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
         const audioBlob = new Blob(audioChunksRef.current, {
           type: actualMimeType,
         });
+        audioChunksRef.current = [];
+        mediaRecorderRef.current = null;
         const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
+        reader.onload = async () => {
           const base64data = reader.result as string;
           if (base64data.length > 800000) {
             console.warn("Recorded audio is too large. Attempting transcription...");
@@ -232,9 +254,18 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
           } catch (e) {
             console.error("Failed to parse via Gemini", e);
           } finally {
+            reader.onload = null;
+            reader.onerror = null;
             setLoading(false);
           }
         };
+        reader.onerror = () => {
+          reader.onload = null;
+          reader.onerror = null;
+          setLoading(false);
+          setError("Could not read the recorded audio.");
+        };
+        reader.readAsDataURL(audioBlob);
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -256,6 +287,8 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
     if (audioContextRef.current?.state !== "closed") {
       audioContextRef.current?.close().catch(() => {});
     }
+    audioContextRef.current = null;
+    analyserRef.current = null;
     recognitionRef.current?.stop();
     setIsRecording(false);
 

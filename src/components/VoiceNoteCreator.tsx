@@ -37,6 +37,8 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
   const finalTranscriptRef = useRef('');
@@ -139,6 +141,25 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      const recorder = mediaRecorderRef.current;
+      if (recorder) {
+        recorder.ondataavailable = null;
+        recorder.onstop = null;
+        if (recorder.state !== "inactive") recorder.stop();
+      }
+      audioStreamRef.current?.getTracks().forEach((track) => track.stop());
+      if (audioContextRef.current?.state !== "closed") {
+        audioContextRef.current?.close().catch(() => {});
+      }
+      audioChunksRef.current = [];
+      audioStreamRef.current = null;
+      audioContextRef.current = null;
+      mediaRecorderRef.current = null;
+    };
+  }, []);
+
   const checkGeminiKey = async (): Promise<string | null> => {
     if (!auth.currentUser) return null;
     try {
@@ -204,6 +225,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         setErrorMessage("Microphone permission denied.");
         return;
       }
+      audioStreamRef.current = stream;
 
       if (transcriptionSupported && recognitionRef.current) {
         shouldRestartRecognitionRef.current = true;
@@ -225,6 +247,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         analyserNode.fftSize = 256;
         const source = audioCtx.createMediaStreamSource(stream);
         source.connect(analyserNode);
+        audioContextRef.current = audioCtx;
         setAnalyser(analyserNode);
       } catch(e) {
         console.error("AudioContext error", e);
@@ -239,30 +262,51 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       mediaRecorder.onstop = () => {
         const actualMimeType = mediaRecorder.mimeType || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, { type: actualMimeType });
+
+        // The Blob now owns the bytes needed by FileReader; release capture
+        // resources immediately and never retain audio in component state.
+        audioChunksRef.current = [];
+        mediaRecorderRef.current = null;
+        audioStreamRef.current = null;
+        stream.getTracks().forEach((track) => track.stop());
+        if (audioContextRef.current?.state !== "closed") {
+          audioContextRef.current?.close().catch(() => {});
+        }
+        audioContextRef.current = null;
+        setAnalyser(null);
+        setAudioStream(null);
         
         if (audioBlob.size > 3 * 1024 * 1024) {
           setErrorType("size");
           setErrorMessage("Recording is too long — please keep voice notes under 60 seconds");
           setIsParsing(false);
-          stream.getTracks().forEach((track) => track.stop());
-          setAudioStream(null);
           return;
         }
 
         const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-          const base64data = reader.result as string;
-          if (base64data.length > 800000) {
-            setErrorType("size");
-            setErrorMessage("Audio too large to process.");
-            setIsParsing(false);
-            return;
+        reader.onload = async () => {
+          try {
+            const base64data = reader.result as string;
+            if (base64data.length > 800000) {
+              setErrorType("size");
+              setErrorMessage("Audio too large to process.");
+              setIsParsing(false);
+              return;
+            }
+            await processAudio(base64data, actualMimeType);
+          } finally {
+            reader.onload = null;
+            reader.onerror = null;
           }
-          await processAudio(base64data, actualMimeType);
         };
-        stream.getTracks().forEach((track) => track.stop());
-        setAudioStream(null);
+        reader.onerror = () => {
+          reader.onload = null;
+          reader.onerror = null;
+          setErrorType("api");
+          setErrorMessage("Could not read the recorded audio.");
+          setIsParsing(false);
+        };
+        reader.readAsDataURL(audioBlob);
       };
 
       mediaRecorder.start(100);
@@ -273,6 +317,16 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       console.error("Recording error:", err);
       shouldRestartRecognitionRef.current = false;
       stopRecognitionRef.current();
+      audioStreamRef.current?.getTracks().forEach((track) => track.stop());
+      if (audioContextRef.current?.state !== "closed") {
+        audioContextRef.current?.close().catch(() => {});
+      }
+      audioChunksRef.current = [];
+      audioStreamRef.current = null;
+      audioContextRef.current = null;
+      mediaRecorderRef.current = null;
+      setAudioStream(null);
+      setAnalyser(null);
       setErrorType("permission");
       setErrorMessage(err.message || "Microphone access denied.");
     }
@@ -353,6 +407,9 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       setErrorType("api");
       setErrorMessage(e.message || "An error occurred.");
     } finally {
+      audioChunksRef.current = [];
+      latestTranscriptRef.current = '';
+      finalTranscriptRef.current = '';
       setIsParsing(false);
     }
   };
