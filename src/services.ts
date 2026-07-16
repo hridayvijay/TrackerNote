@@ -46,7 +46,7 @@ export function subscribeToProjects(
 }
 
 export async function addProject(
-  project: Omit<SyncProject, "id" | "updatedAt" | "userId"> & {
+  project: Omit<SyncProject, "id" | "updatedAt" | "userId" | "createdBy" | "workspace" | "members"> & {
     createdAt?: number;
   },
 ) {
@@ -56,6 +56,9 @@ export async function addProject(
   await setDoc(docRef, {
     ...project,
     userId: auth.currentUser.uid,
+    createdBy: auth.currentUser.uid,
+    workspace: "personal",
+    members: [auth.currentUser.uid],
     createdAt: project.createdAt || now,
     updatedAt: now,
   });
@@ -107,7 +110,7 @@ export function subscribeToSyncNotes(
 }
 
 export async function addSyncNote(
-  note: Omit<SyncNote, "id" | "createdAt" | "updatedAt" | "userId">,
+  note: Omit<SyncNote, "id" | "createdAt" | "updatedAt" | "userId" | "createdBy" | "workspace" | "assignedTo">,
 ) {
   if (!auth.currentUser) throw new Error("Not authenticated");
   const docRef = doc(collection(db, "syncNotes"));
@@ -125,6 +128,9 @@ export async function addSyncNote(
     dueDate: dueDateIso,
     reminderTime: reminderTimeIso,
     userId: auth.currentUser.uid,
+    createdBy: auth.currentUser.uid,
+    workspace: "personal",
+    assignedTo: [auth.currentUser.uid],
     createdAt: now,
     updatedAt: now,
   });

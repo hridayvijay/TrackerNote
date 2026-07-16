@@ -5,6 +5,9 @@ export type NotePriority = "Low" | "Medium" | "High";
 export interface SyncProject {
   id: string;
   userId: string;
+  createdBy: string;
+  workspace: string;
+  members: string[];
   title: string;
   assignee: string;
   createdAt: number;
@@ -18,6 +21,9 @@ export interface SyncNote {
   id: string;
   projectId: string;
   userId: string;
+  createdBy: string;
+  workspace: string;
+  assignedTo: string[];
   content: string;
   reminderTime: number | string | null; // Unix timestamp or ISO string
   reminderText?: string;

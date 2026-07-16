@@ -6,11 +6,13 @@ service cloud.firestore {
     match /syncProjects/{docId} {
       allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      // TODO: team access — allow read, write if request.auth.uid in resource.data.members
     }
     
     match /syncNotes/{docId} {
       allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      // TODO: team access — extend authorization when collaboration is implemented.
     }
     
     match /users/{uid} {
