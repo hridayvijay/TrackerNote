@@ -39,9 +39,12 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
-  const isRecordingRef = useRef(false);
-  const isInitializingMicRef = useRef(false);
   const finalTranscriptRef = useRef('');
+  const latestTranscriptRef = useRef('');
+  const shouldRestartRecognitionRef = useRef(false);
+  const recognitionRestartTimerRef = useRef<number | null>(null);
+  const startRecognitionRef = useRef<() => void>(() => {});
+  const stopRecognitionRef = useRef<() => void>(() => {});
 
   const [geminiKey, setGeminiKey] = useState<string | null>(null);
   const geminiKeyRef = useRef<string | null>(null);
@@ -58,8 +61,41 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
+    let recognitionActive = false;
+
+    const clearRecognitionRestart = () => {
+      if (recognitionRestartTimerRef.current !== null) {
+        window.clearTimeout(recognitionRestartTimerRef.current);
+        recognitionRestartTimerRef.current = null;
+      }
+    };
+
+    const scheduleRecognitionStart = (delay = 0): void => {
+      clearRecognitionRestart();
+      recognitionRestartTimerRef.current = window.setTimeout(() => {
+        recognitionRestartTimerRef.current = null;
+        if (!shouldRestartRecognitionRef.current || recognitionActive) return;
+        try {
+          recognition.start();
+        } catch (error) {
+          console.error("Failed to start SpeechRecognition:", error);
+          if (shouldRestartRecognitionRef.current) scheduleRecognitionStart(300);
+        }
+      }, delay);
+    };
+
+    startRecognitionRef.current = () => scheduleRecognitionStart();
+    stopRecognitionRef.current = () => {
+      shouldRestartRecognitionRef.current = false;
+      clearRecognitionRestart();
+      if (recognitionActive) recognition.stop();
+    };
+
+    recognition.onstart = () => {
+      recognitionActive = true;
+    };
+
     recognition.onresult = (event: any) => {
-      console.log('3. onresult fired, transcript:', event.results[event.resultIndex][0].transcript);
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         const t = event.results[i][0].transcript;
@@ -70,28 +106,36 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         }
       }
       const combined = (finalTranscriptRef.current + interim).trim();
-      console.log('4. setLiveTranscript called with:', combined);
+      latestTranscriptRef.current = combined;
       setInterimText(combined);
     };
 
     recognition.onerror = (event: any) => {
       console.error("SpeechRecognition error:", event.error);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        shouldRestartRecognitionRef.current = false;
+        clearRecognitionRestart();
+        setTranscriptionSupported(false);
+      }
     };
 
     recognition.onend = () => {
-      console.log("SpeechRecognition onend fired");
-      if (isRecordingRef.current || isInitializingMicRef.current) {
-        try { recognition.start(); } catch(e){}
-      }
+      recognitionActive = false;
+      // Chromium often ignores continuous=true and ends after a phrase. Waiting
+      // for teardown avoids InvalidStateError on Windows and Android.
+      if (shouldRestartRecognitionRef.current) scheduleRecognitionStart(250);
     };
 
     recognitionRef.current = recognition;
 
     return () => {
       stopTimer();
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      shouldRestartRecognitionRef.current = false;
+      clearRecognitionRestart();
+      if (recognitionActive) recognition.abort();
+      recognitionRef.current = null;
+      startRecognitionRef.current = () => {};
+      stopRecognitionRef.current = () => {};
     };
   }, []);
 
@@ -130,7 +174,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   };
 
   const handleMicClick = async () => {
-    console.log('1. startRecording called');
     if (isRecording) {
       stopRecording();
       return;
@@ -140,6 +183,8 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     setErrorType("none");
     setErrorMessage("");
     setInterimText("");
+    latestTranscriptRef.current = '';
+    finalTranscriptRef.current = '';
 
     const key = await checkGeminiKey();
     if (!key) {
@@ -151,29 +196,18 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     geminiKeyRef.current = key;
 
     try {
-            isInitializingMicRef.current = true;
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      if (isSafari && transcriptionSupported && recognitionRef.current) {
-        finalTranscriptRef.current = '';
-        try {
-          recognitionRef.current.start();
-        } catch(e) {}
-      }
-
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log('2. getUserMedia resolved');
       } catch (e) {
-        isInitializingMicRef.current = false;
-        setErrorType("mic");
+        setErrorType("permission");
         setErrorMessage("Microphone permission denied.");
         return;
       }
 
-      if (!isSafari && transcriptionSupported && recognitionRef.current) {
-        finalTranscriptRef.current = '';
-        try { recognitionRef.current.start(); } catch(e){}
+      if (transcriptionSupported && recognitionRef.current) {
+        shouldRestartRecognitionRef.current = true;
+        startRecognitionRef.current();
       }
       
       let options: any = { audioBitsPerSecond: 32000 };
@@ -233,13 +267,12 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
       mediaRecorder.start(100);
       setIsRecording(true);
-      isRecordingRef.current = true;
-      isInitializingMicRef.current = false;
       
       startTimer();
     } catch (err: any) {
       console.error("Recording error:", err);
-      isInitializingMicRef.current = false;
+      shouldRestartRecognitionRef.current = false;
+      stopRecognitionRef.current();
       setErrorType("permission");
       setErrorMessage(err.message || "Microphone access denied.");
     }
@@ -248,13 +281,10 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const stopRecording = () => {
     if (!isRecording) return;
     setIsRecording(false);
-    isRecordingRef.current = false;
     setIsParsing(true);
     stopTimer();
     mediaRecorderRef.current?.stop();
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
+    stopRecognitionRef.current();
   };
 
   const processAudio = async (base64data: string, mimeType: string = 'audio/webm') => {
@@ -283,7 +313,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
           mimeType: mimeType,
           displayName: displayName,
           geminiApiKey: geminiKeyRef.current,
-          transcript: interimText
+          transcript: latestTranscriptRef.current
         })
       });
 
