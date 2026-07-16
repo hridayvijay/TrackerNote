@@ -23,6 +23,24 @@ import { motion, AnimatePresence } from "motion/react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
+function getMyTaskPreview(note: SyncNote): string {
+  const reminder = note.reminderText?.trim();
+  if (reminder) return reminder;
+
+  const content = note.content
+    .replace(/^\[AI Extracted\]\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (content.length <= 88) return content;
+
+  const firstSentence = content.match(/^(.{24,110}?[.!?])(?:\s|$)/)?.[1];
+  if (firstSentence) return firstSentence;
+
+  const shortened = content.slice(0, 88);
+  const lastSpace = shortened.lastIndexOf(" ");
+  return `${shortened.slice(0, lastSpace > 56 ? lastSpace : 88).trimEnd()}…`;
+}
+
 export default function NotesDashboard({ user }: { user: User }) {
   const [projects, setProjects] = useState<SyncProject[]>([]);
   const [notes, setNotes] = useState<SyncNote[]>([]);
@@ -308,7 +326,7 @@ export default function NotesDashboard({ user }: { user: User }) {
                     {project?.title || "Unknown Project"}
                   </span>
                   <span className="font-medium text-[var(--theme-text-primary)] truncate mt-0.5">
-                    {rem.content}
+                    {getMyTaskPreview(rem)}
                   </span>
                   <div className="flex justify-between items-center mt-1.5 space-x-2 text-[10px] text-[var(--theme-text-secondary)] font-bold uppercase tracking-wider">
                     {rem.reminderTime ? (
