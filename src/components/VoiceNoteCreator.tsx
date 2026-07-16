@@ -35,7 +35,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [transcriptionSupported, setTranscriptionSupported] = useState(true);
   const [livePreviewError, setLivePreviewError] = useState<string | null>(null);
-  const [orbStyle, setOrbStyle] = useState<OrbStyle>("2d");
+  const [orbStyle, setOrbStyle] = useState<OrbStyle>("3d");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -522,48 +522,39 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       {errorType === "none" && (
         <div className="relative flex flex-col items-center justify-center w-full" style={{ position: 'relative' }}>
           <div
-            className="relative z-20 mb-2 flex items-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-bg-card)]/85 p-0.5 shadow-lg backdrop-blur-md"
-            aria-label="Voice orb style"
+            className="relative z-20 mb-2 flex min-h-7 items-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-bg-card)]/85 p-0.5 shadow-lg backdrop-blur-md"
+            aria-label={isRecording ? "Recording status" : "Voice orb style"}
           >
-            {(["2d", "3d"] as OrbStyle[]).map((style) => (
-              <button
-                key={style}
-                type="button"
-                disabled={isRecording || isParsing}
-                onClick={() => setOrbStyle(style)}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                  orbStyle === style
-                    ? "bg-[var(--theme-accent)] text-[var(--theme-bg-primary)]"
-                    : "text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)]"
-                }`}
-              >
-                {style}
-              </button>
-            ))}
+            {isRecording ? (
+              <div className="flex items-center gap-2 px-2.5 py-1">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="font-mono text-xs font-semibold tabular-nums text-[var(--theme-text-primary)]">
+                  {formatTime(recordingSeconds)}
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--theme-text-muted)]">
+                  {orbStyle}
+                </span>
+              </div>
+            ) : (
+              (["2d", "3d"] as OrbStyle[]).map((style) => (
+                <button
+                  key={style}
+                  type="button"
+                  disabled={isParsing}
+                  onClick={() => setOrbStyle(style)}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    orbStyle === style
+                      ? "bg-[var(--theme-accent)] text-[var(--theme-bg-primary)]"
+                      : "text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)]"
+                  }`}
+                >
+                  {style}
+                </button>
+              ))
+            )}
           </div>
 
           <KineticTranscription transcript={interimText} isRecording={isRecording} />
-
-          <AnimatePresence>
-            {isRecording && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                className="absolute bottom-full mb-[5.5rem] flex flex-col items-center bg-[var(--theme-bg-primary)]/90 backdrop-blur-xl border border-[var(--theme-border)]/50 rounded-2xl p-4 shadow-2xl w-[260px]"
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-xs font-semibold tracking-wider text-[var(--theme-text-primary)] uppercase">Recording</span>
-                  </div>
-                  <span className="font-mono text-sm font-medium text-[var(--theme-text-primary)] bg-[var(--theme-bg-secondary)]/50 px-2 py-0.5 rounded">
-                    {formatTime(recordingSeconds)}
-                  </span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           <AnimatePresence>
             {isParsing && (
