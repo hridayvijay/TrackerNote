@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Mic, Square, Loader2, AlertCircle } from "lucide-react";
+import { Mic, Square, AlertCircle } from "lucide-react";
 import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "motion/react";
-import VoiceOrb, { OrbStyle } from "./VoiceOrb";
+import VoiceOrb from "./VoiceOrb";
 import KineticTranscription from "./KineticTranscription";
 
 export interface ParsedNoteData {
@@ -35,8 +35,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [transcriptionSupported, setTranscriptionSupported] = useState(true);
   const [livePreviewError, setLivePreviewError] = useState<string | null>(null);
-  const [orbStyle, setOrbStyle] = useState<OrbStyle>("3d");
-
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioStreamRef = useRef<MediaStream | null>(null);
@@ -535,61 +533,27 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       {/* Main Mic Button / Recorder UI */}
       {errorType === "none" && (
         <div className="relative flex flex-col items-center justify-center w-full" style={{ position: 'relative' }}>
-          <div
-            className="relative z-20 mb-2 flex min-h-7 items-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-bg-card)]/85 p-0.5 shadow-lg backdrop-blur-md"
-            aria-label={isRecording ? "Recording status" : "Voice orb style"}
-          >
-            {isRecording ? (
-              <div className="flex items-center gap-2 px-2.5 py-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="font-mono text-xs font-semibold tabular-nums text-[var(--theme-text-primary)]">
-                  {formatTime(recordingSeconds)}
-                </span>
-                <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--theme-text-muted)]">
-                  {orbStyle}
-                </span>
-              </div>
-            ) : (
-              (["2d", "3d"] as OrbStyle[]).map((style) => (
-                <button
-                  key={style}
-                  type="button"
-                  disabled={isParsing}
-                  onClick={() => setOrbStyle(style)}
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                    orbStyle === style
-                      ? "bg-[var(--theme-accent)] text-[var(--theme-bg-primary)]"
-                      : "text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)]"
-                  }`}
-                >
-                  {style}
-                </button>
-              ))
-            )}
-          </div>
+          {isRecording && (
+            <div
+              className="relative z-20 mb-2 flex min-h-7 items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-bg-card)]/85 px-3 py-1 shadow-lg backdrop-blur-md"
+              aria-label={`Recording ${formatTime(recordingSeconds)}`}
+              aria-live="polite"
+            >
+              <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="font-mono text-xs font-semibold tabular-nums text-[var(--theme-text-primary)]">
+                {formatTime(recordingSeconds)}
+              </span>
+            </div>
+          )}
 
           <KineticTranscription transcript={interimText} isRecording={isRecording} />
-
-          <AnimatePresence>
-            {isParsing && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                className="absolute bottom-full mb-6 flex flex-col items-center bg-[var(--theme-bg-primary)]/90 backdrop-blur-xl border border-[var(--theme-border)]/50 rounded-2xl p-4 shadow-2xl w-[260px]"
-              >
-                <div className="flex items-center space-x-2">
-                  <Loader2 className="w-5 h-5 text-[var(--theme-accent-text)] animate-spin" />
-                  <span className="text-xs text-[var(--theme-text-primary)] font-medium tracking-wide">Parsing your note...</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           <div className="relative z-10 flex justify-center w-full">
             <VoiceOrb 
               state={isParsing ? "parsing" : isRecording ? "recording" : "idle"}
               onClick={handleMicClick}
               analyser={analyser}
-              orbStyle={orbStyle}
+              orbStyle="3d"
             />
           </div>
           
