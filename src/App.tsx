@@ -675,7 +675,7 @@ function App() {
 
   // Base Dashboard layout with account navigation
   return (
-    <div className="min-h-screen flex flex-col font-sans relative overflow-hidden bg-[var(--theme-bg-primary)] transition-colors duration-300 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
+    <div className="min-h-screen flex flex-col font-sans relative overflow-x-clip bg-[var(--theme-bg-primary)] transition-colors duration-300 text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
       
       <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none z-0" style={{ background: 'var(--theme-orb-1)', opacity: 0.15 }} />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none z-0" style={{ background: 'var(--theme-orb-2)', opacity: 0.15 }} />

@@ -1,185 +1,73 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 
 interface KineticTranscriptionProps {
   transcript: string;
   isRecording: boolean;
 }
 
-const sentenceEnders = new Set(["done", "finished", "okay", "right", "thanks", "please"]);
-const questionWords = new Set(["what", "when", "where", "who", "why", "how", "is", "are", "can", "will"]);
-const conjunctions = new Set(["and", "but", "so", "because", "then"]);
+const MAX_VISIBLE_WORDS = 14;
 
 export default function KineticTranscription({ transcript, isRecording }: KineticTranscriptionProps) {
-  const [completedWords, setCompletedWords] = useState<string[]>([]);
-  const [currentWord, setCurrentWord] = useState<string>("");
-  const [isFadingOut, setIsFadingOut] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  const lastTranscriptRef = useRef(transcript);
-  const lastUpdateRef = useRef(Date.now());
-  const completedWordsRef = useRef<string[]>([]);
-  const currentWordRef = useRef<string>("");
-
-  useEffect(() => {
-    if (isRecording) {
-      setCompletedWords([]);
-      setCurrentWord("");
-      completedWordsRef.current = [];
-      currentWordRef.current = "";
-      setIsFadingOut(false);
-      lastTranscriptRef.current = "";
-    }
-  }, [isRecording]);
-
-  useEffect(() => {
-    if (!isRecording) {
-      if (completedWordsRef.current.length > 0 || currentWordRef.current) {
-        if (currentWordRef.current) {
-          const w = currentWordRef.current;
-          setCompletedWords(prev => {
-            const next = [...prev, w];
-            completedWordsRef.current = next;
-            return next;
-          });
-          setCurrentWord("");
-          currentWordRef.current = "";
-        }
-        const timer1 = setTimeout(() => {
-          setIsFadingOut(true);
-        }, 800);
-        const timer2 = setTimeout(() => {
-          setCompletedWords([]);
-          setCurrentWord("");
-          completedWordsRef.current = [];
-          currentWordRef.current = "";
-        }, 1200);
-        lastTranscriptRef.current = transcript;
-        return () => { clearTimeout(timer1); clearTimeout(timer2); };
-      }
-      lastTranscriptRef.current = transcript;
-      return;
-    }
-    
-    setIsFadingOut(false);
-    
-    const words = transcript.trim().split(/\s+/).filter(w => w.length > 0);
-    const lastWords = lastTranscriptRef.current.trim().split(/\s+/).filter(w => w.length > 0);
-    
-    // Process new words
-    if (words.length > 0) {
-      const isNewWord = words.length > lastWords.length || 
-                        (words.length === lastWords.length && transcript.endsWith(' ') && !lastTranscriptRef.current.endsWith(' '));
-
-      if (isNewWord) {
-        const timeSinceLast = Date.now() - lastUpdateRef.current;
-        const previousWordRaw = completedWordsRef.current.length > 0 ? completedWordsRef.current[completedWordsRef.current.length - 1] : "";
-        let previousWordClean = previousWordRaw.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-
-        const latestWordRaw = currentWordRef.current;
-        let wordToAdd = latestWordRaw;
-        
-        if (wordToAdd) {
-            let nextWordClean = words[words.length - 1]?.toLowerCase() || "";
-            
-            // Check if there is a question word in the recent history
-            const allWords = [...completedWordsRef.current, wordToAdd];
-            const recentWords = allWords.slice(-6); // look at the last few words
-            const hasQuestionWord = recentWords.some(w => questionWords.has(w.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()));
-            
-            // apply punctuation
-            if (sentenceEnders.has(wordToAdd.toLowerCase())) {
-                wordToAdd += ".";
-            } else if (hasQuestionWord && timeSinceLast > 1500) {
-                wordToAdd += "?";
-            }
-            
-            setCompletedWords(prev => {
-              const next = [...prev, wordToAdd];
-              completedWordsRef.current = next;
-              return next;
-            });
-        }
-        
-        let newCurrent = words[words.length - 1];
-        if (conjunctions.has(newCurrent.toLowerCase()) && wordToAdd && !wordToAdd.match(/[.,!?]$/)) {
-            newCurrent = "," + newCurrent;
-        }
-        
-        setCurrentWord(newCurrent);
-        currentWordRef.current = newCurrent;
-        lastUpdateRef.current = Date.now();
-      } else {
-        setCurrentWord(words[words.length - 1]);
-        currentWordRef.current = words[words.length - 1];
-      }
-    } else {
-      setCurrentWord("");
-      currentWordRef.current = "";
-    }
-    
-    lastTranscriptRef.current = transcript;
-
-  }, [transcript, isRecording]);
-
-  useEffect(() => {
-    if (containerRef.current) {
-        containerRef.current.scrollTop = containerRef.current.scrollHeight;
-    }
-  }, [completedWords, currentWord]);
+  const words = transcript.trim().split(/\s+/).filter(Boolean);
+  const visibleWords = words.slice(-MAX_VISIBLE_WORDS);
+  const firstVisibleIndex = words.length - visibleWords.length;
 
   return (
     <AnimatePresence>
-      {(!isFadingOut && (isRecording || completedWords.length > 0 || currentWord.length > 0)) && (
+      {isRecording && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
-          className="absolute bottom-full mb-8 z-50 pointer-events-none"
-          style={{ width: "min(280px, 90vw)", left: "50%", transform: "translateX(-50%)", zIndex: 50 }}
+          key="live-transcription"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.2 }}
+          className="pointer-events-none"
+          aria-live="polite"
+          style={{
+            position: "absolute",
+            bottom: "100%",
+            left: "50%",
+            width: "min(320px, 90vw)",
+            minHeight: "3em",
+            marginBottom: "2rem",
+            transform: "translateX(-50%)",
+            zIndex: 60,
+          }}
         >
-          <div 
-            ref={containerRef}
-            className="w-full text-center overflow-y-hidden"
-            style={{ 
-              maxHeight: "3em", // 2 lines with 1.5 line height
+          <div
+            className="flex min-h-[3em] flex-wrap content-end items-end justify-center gap-x-[0.25em] overflow-visible pb-1 text-center"
+            style={{
               lineHeight: 1.5,
               fontSize: "18px",
-              color: "white"
+              color: "var(--theme-text-primary)",
+              textShadow: "0 2px 12px var(--theme-bg-primary)",
             }}
           >
-            <div className="flex flex-wrap justify-center content-end min-h-full items-end gap-x-[0.25em] pb-1">
-                {isRecording && completedWords.length === 0 && !currentWord && (
-                <motion.span
-                    initial={{ opacity: 0 }} animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.5, repeat: Infinity }}
-                    className="font-normal italic text-[var(--theme-text-muted)] opacity-60 inline-block whitespace-nowrap"
-                >
-                    Listening...
-                </motion.span>
-                )}
-                {completedWords.map((word, i) => (
-                <span key={i} className="font-normal opacity-90 inline-block whitespace-nowrap">
+            {visibleWords.length === 0 ? (
+              <motion.span
+                animate={{ opacity: [0.45, 0.9, 0.45] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="whitespace-nowrap italic text-[var(--theme-text-muted)]"
+              >
+                Listening...
+              </motion.span>
+            ) : (
+              visibleWords.map((word, index) => {
+                const absoluteIndex = firstVisibleIndex + index;
+                const isLatest = index === visibleWords.length - 1;
+                return (
+                  <motion.span
+                    key={`${absoluteIndex}-${word}`}
+                    initial={isLatest ? { opacity: 0, y: 5 } : false}
+                    animate={{ opacity: isLatest ? 1 : 0.82, y: 0 }}
+                    transition={{ duration: 0.12 }}
+                    className={isLatest ? "font-semibold" : "font-normal"}
+                  >
                     {word}
-                </span>
-                ))}
-                
-                {currentWord && (
-                <span className="font-medium inline-block whitespace-nowrap">
-                    {currentWord.split('').map((char, index) => (
-                    <motion.span
-                        key={`${completedWords.length}-${index}-${char}`}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.04, ease: "easeOut", delay: index * 0.03 }}
-                        className="inline-block"
-                    >
-                        {char}
-                    </motion.span>
-                    ))}
-                </span>
-                )}
-            </div>
+                  </motion.span>
+                );
+              })
+            )}
           </div>
         </motion.div>
       )}
