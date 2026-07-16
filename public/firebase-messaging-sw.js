@@ -18,7 +18,7 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.data?.title || payload.notification?.title || 'Reminder';
   const notificationOptions = {
     body: payload.data?.body || payload.notification?.body || '',
-    icon: '/vite.svg'
+    icon: '/trackernote-icon.svg'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

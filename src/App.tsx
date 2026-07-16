@@ -23,7 +23,6 @@ import {
   saveFcmToken,
 } from "./services";
 import {
-  Briefcase,
   LogOut,
   Moon,
   Sun,
@@ -45,6 +44,7 @@ import { motion, AnimatePresence } from "motion/react";
 
 import { ThemeProvider, useTheme } from "./themes/ThemeContext";
 import ThemePicker from "./components/ThemePicker";
+import TrackerNoteLogo from "./components/TrackerNoteLogo";
 
 export default function AppWrapper() {
   return (
@@ -169,7 +169,7 @@ function App() {
                 const notificationTitle = payload.data?.title || payload.notification?.title || 'Reminder';
                 const notificationOptions = {
                   body: payload.data?.body || payload.notification?.body || '',
-                  icon: '/vite.svg'
+                  icon: '/trackernote-icon.svg'
                 };
                 new Notification(notificationTitle, notificationOptions);
               });
@@ -349,7 +349,7 @@ function App() {
         
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[var(--theme-accent)]/30 dark:bg-[var(--theme-accent)]/10 rounded-full blur-[100px] pointer-events-none" />
         <div className="animate-pulse flex items-center space-x-2 text-[var(--theme-accent-text)] z-10 relative">
-          <Briefcase className="w-5 h-5" />
+          <TrackerNoteLogo variant="mark" className="h-8 w-8" />
           <span className="font-semibold text-lg text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
             Loading TrackerNote...
           </span>
@@ -374,12 +374,11 @@ function App() {
         >
           <div className="p-8 space-y-6">
             <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-14 h-14 bg-[var(--theme-accent)]/10 dark:bg-[var(--theme-accent)]/20 rounded-full flex items-center justify-center">
-                <Briefcase className="w-7 h-7 text-[var(--theme-accent-text)] text-[var(--theme-accent-text)]" />
-              </div>
-              <h1 className="text-3xl font-black tracking-tight text-[var(--theme-text-primary)] text-[var(--theme-text-primary)]">
-                TrackerNote
-              </h1>
+              <TrackerNoteLogo
+                className="flex-col gap-2"
+                markClassName="h-20 w-20"
+                wordmarkClassName="text-3xl"
+              />
               <p className="text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] text-sm max-w-sm">
                 Securely sync stakeholder notes, board priorities, and custom reminders inside a unified dashboard.
               </p>
@@ -683,29 +682,8 @@ function App() {
 
       <header className="glass flex-shrink-0 relative z-10 border-b border-[var(--theme-border)] border-[var(--theme-border)]/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setShowAccountPage(false)}>
-            <svg width="26" height="26" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="vg" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="var(--theme-orb-1)"/>
-                  <stop offset="50%" stopColor="var(--theme-orb-2)"/>
-                  <stop offset="100%" stopColor="var(--theme-orb-3)"/>
-                </linearGradient>
-                <radialGradient id="vs" cx="32%" cy="24%" r="58%">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.2)"/>
-                  <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
-                </radialGradient>
-              </defs>
-              <circle cx="100" cy="100" r="100" fill="url(#vg)"/>
-              <circle cx="100" cy="100" r="100" fill="url(#vs)"/>
-              <line x1="25" y1="62" x2="131" y2="62" stroke="white" strokeWidth="14" strokeLinecap="round"/>
-              <line x1="78" y1="62" x2="78" y2="152" stroke="white" strokeWidth="14" strokeLinecap="round"/>
-              <line x1="131" y1="62" x2="131" y2="152" stroke="white" strokeWidth="14" strokeLinecap="round"/>
-              <line x1="131" y1="62" x2="172" y2="152" stroke="white" strokeWidth="14" strokeLinecap="round"/>
-              <line x1="172" y1="62" x2="172" y2="152" stroke="white" strokeWidth="14" strokeLinecap="round"/>
-              <circle cx="131" cy="62" r="8" fill="white"/>
-            </svg>
-            <h1 className="text-xl font-black tracking-tight text-[var(--theme-text-primary)] text-[var(--theme-text-primary)] select-none">TrackerNote</h1>
+          <div className="flex items-center cursor-pointer select-none" onClick={() => setShowAccountPage(false)}>
+            <TrackerNoteLogo markClassName="h-8 w-8" wordmarkClassName="text-xl" />
           </div>
           <div className="flex items-center space-x-2 sm:space-x-4">
             <span className="text-sm font-bold text-[var(--theme-text-secondary)] text-[var(--theme-text-secondary)] hidden sm:block">
