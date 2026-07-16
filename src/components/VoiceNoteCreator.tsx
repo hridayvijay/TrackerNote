@@ -64,6 +64,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     recognition.lang = 'en-US';
 
     let recognitionActive = false;
+    let recognitionStarting = false;
 
     const clearRecognitionRestart = () => {
       if (recognitionRestartTimerRef.current !== null) {
@@ -72,30 +73,44 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       }
     };
 
-    const scheduleRecognitionStart = (delay = 0): void => {
+    const startRecognitionNow = (): void => {
+      clearRecognitionRestart();
+      if (!shouldRestartRecognitionRef.current || recognitionActive || recognitionStarting) return;
+      try {
+        recognitionStarting = true;
+        recognition.start();
+      } catch (error) {
+        recognitionStarting = false;
+        console.error("Failed to start SpeechRecognition:", error);
+        if (shouldRestartRecognitionRef.current) scheduleRecognitionStart(300);
+      }
+    };
+
+    const scheduleRecognitionStart = (delay = 250): void => {
       clearRecognitionRestart();
       recognitionRestartTimerRef.current = window.setTimeout(() => {
         recognitionRestartTimerRef.current = null;
-        if (!shouldRestartRecognitionRef.current || recognitionActive) return;
-        try {
-          recognition.start();
-        } catch (error) {
-          console.error("Failed to start SpeechRecognition:", error);
-          if (shouldRestartRecognitionRef.current) scheduleRecognitionStart(300);
-        }
+        startRecognitionNow();
       }, delay);
     };
 
-    startRecognitionRef.current = () => scheduleRecognitionStart();
+    // The first start must run in the original click task. Restarts use the
+    // delayed scheduler only after Chrome has fully ended the previous session.
+    startRecognitionRef.current = startRecognitionNow;
     stopRecognitionRef.current = () => {
       shouldRestartRecognitionRef.current = false;
       clearRecognitionRestart();
-      if (recognitionActive) recognition.stop();
+      if (recognitionActive || recognitionStarting) recognition.abort();
+      recognitionStarting = false;
     };
 
     recognition.onstart = () => {
+      recognitionStarting = false;
       recognitionActive = true;
     };
+
+    recognition.onaudiostart = () => console.info("SpeechRecognition audio capture started");
+    recognition.onspeechstart = () => console.info("SpeechRecognition detected speech");
 
     recognition.onresult = (event: any) => {
       let interim = '';
@@ -113,8 +128,9 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     };
 
     recognition.onerror = (event: any) => {
+      recognitionStarting = false;
       console.error("SpeechRecognition error:", event.error);
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+      if (["not-allowed", "service-not-allowed", "audio-capture", "network"].includes(event.error)) {
         shouldRestartRecognitionRef.current = false;
         clearRecognitionRestart();
         setTranscriptionSupported(false);
@@ -122,10 +138,11 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     };
 
     recognition.onend = () => {
+      recognitionStarting = false;
       recognitionActive = false;
       // Chromium often ignores continuous=true and ends after a phrase. Waiting
       // for teardown avoids InvalidStateError on Windows and Android.
-      if (shouldRestartRecognitionRef.current) scheduleRecognitionStart(250);
+      if (shouldRestartRecognitionRef.current) scheduleRecognitionStart();
     };
 
     recognitionRef.current = recognition;
@@ -207,8 +224,17 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     latestTranscriptRef.current = '';
     finalTranscriptRef.current = '';
 
+    // Chrome's recognizer is intentionally started before any await and before
+    // MediaRecorder claims the microphone. This preserves the click activation
+    // and avoids the Windows capture-order race.
+    if (transcriptionSupported && recognitionRef.current) {
+      shouldRestartRecognitionRef.current = true;
+      startRecognitionRef.current();
+    }
+
     const key = await checkGeminiKey();
     if (!key) {
+      stopRecognitionRef.current();
       setErrorType("no-key");
       setErrorMessage("No Gemini key configured.");
       return;
@@ -221,17 +247,13 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (e) {
+        stopRecognitionRef.current();
         setErrorType("permission");
         setErrorMessage("Microphone permission denied.");
         return;
       }
       audioStreamRef.current = stream;
 
-      if (transcriptionSupported && recognitionRef.current) {
-        shouldRestartRecognitionRef.current = true;
-        startRecognitionRef.current();
-      }
-      
       let options: any = { audioBitsPerSecond: 32000 };
       if (typeof MediaRecorder.isTypeSupported === 'function') {
         if (MediaRecorder.isTypeSupported('audio/webm')) options.mimeType = 'audio/webm';
@@ -474,7 +496,6 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       {/* Main Mic Button / Recorder UI */}
       {errorType === "none" && (
         <div className="relative flex flex-col items-center justify-center w-full" style={{ position: 'relative' }}>
-          
           <KineticTranscription transcript={interimText} isRecording={isRecording} />
 
           <AnimatePresence>
