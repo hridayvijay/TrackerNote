@@ -6,13 +6,13 @@ export interface VoiceOrbProps {
   state: "idle" | "recording" | "parsing";
   onClick: () => void;
   analyser?: AnalyserNode | null;
+  orbStyle?: OrbStyle;
 }
 
 const ORB_SIZE = 72;
 
-// Change this one value to switch implementations.
-type OrbStyle = "2d" | "3d";
-const ORB_STYLE: OrbStyle = "2d";
+export type OrbStyle = "2d" | "3d";
+const DEFAULT_ORB_STYLE: OrbStyle = "2d";
 
 const FALLBACK_COLORS: [string, string, string, string] = [
   "#c084fc",
@@ -531,5 +531,5 @@ function renderOrb(style: OrbStyle, props: VoiceOrbProps) {
 }
 
 export default function VoiceOrb(props: VoiceOrbProps) {
-  return renderOrb(ORB_STYLE, props);
+  return renderOrb(props.orbStyle ?? DEFAULT_ORB_STYLE, props);
 }

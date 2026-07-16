@@ -3,7 +3,7 @@ import { Mic, Square, Loader2, AlertCircle } from "lucide-react";
 import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "motion/react";
-import VoiceOrb from "./VoiceOrb";
+import VoiceOrb, { OrbStyle } from "./VoiceOrb";
 import KineticTranscription from "./KineticTranscription";
 
 export interface ParsedNoteData {
@@ -34,6 +34,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [transcriptionSupported, setTranscriptionSupported] = useState(true);
+  const [orbStyle, setOrbStyle] = useState<OrbStyle>("2d");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -496,6 +497,27 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       {/* Main Mic Button / Recorder UI */}
       {errorType === "none" && (
         <div className="relative flex flex-col items-center justify-center w-full" style={{ position: 'relative' }}>
+          <div
+            className="relative z-20 mb-2 flex items-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-bg-card)]/85 p-0.5 shadow-lg backdrop-blur-md"
+            aria-label="Voice orb style"
+          >
+            {(["2d", "3d"] as OrbStyle[]).map((style) => (
+              <button
+                key={style}
+                type="button"
+                disabled={isRecording || isParsing}
+                onClick={() => setOrbStyle(style)}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                  orbStyle === style
+                    ? "bg-[var(--theme-accent)] text-[var(--theme-bg-primary)]"
+                    : "text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)]"
+                }`}
+              >
+                {style}
+              </button>
+            ))}
+          </div>
+
           <KineticTranscription transcript={interimText} isRecording={isRecording} />
 
           <AnimatePresence>
@@ -538,6 +560,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
               state={isParsing ? "parsing" : isRecording ? "recording" : "idle"}
               onClick={handleMicClick}
               analyser={analyser}
+              orbStyle={orbStyle}
             />
           </div>
           
