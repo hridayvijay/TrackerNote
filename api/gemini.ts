@@ -1,6 +1,45 @@
 import { Request, Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
 
+const IST_OFFSET_MINUTES = 330;
+
+function formatInIst(date: Date): string {
+  const shifted = new Date(date.getTime() + IST_OFFSET_MINUTES * 60 * 1000);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}`
+    + `T${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}:${pad(shifted.getUTCSeconds())}+05:30`;
+}
+
+function defaultDueDate(now: Date): string {
+  const istWallClock = new Date(now.getTime() + IST_OFFSET_MINUTES * 60 * 1000);
+  istWallClock.setUTCDate(istWallClock.getUTCDate() + 1);
+  istWallClock.setUTCHours(9, 0, 0, 0);
+  return `${istWallClock.toISOString().slice(0, 10)}T09:00:00+05:30`;
+}
+
+function normalizeParsedResponse(value: unknown, now: Date): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Gemini response was not a JSON object');
+  }
+
+  const parsed = { ...(value as Record<string, unknown>) };
+  let rawDueDate = typeof parsed.dueDate === 'string' ? parsed.dueDate.trim() : '';
+
+  // Gemini occasionally omits the offset. The prompt explicitly defines these
+  // wall-clock values as IST, so attach that offset before parsing.
+  if (rawDueDate && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(rawDueDate)) {
+    rawDueDate += '+05:30';
+  }
+
+  const dueDate = rawDueDate ? new Date(rawDueDate) : null;
+  parsed.dueDate = dueDate && !Number.isNaN(dueDate.getTime())
+    ? formatInIst(dueDate)
+    : defaultDueDate(now);
+  parsed.status = 'Pending';
+
+  return parsed;
+}
+
 export default async function handler(req: Request, res: Response) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -52,7 +91,7 @@ export default async function handler(req: Request, res: Response) {
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents,
-        config: { systemInstruction },
+        config: { systemInstruction, responseMimeType: 'application/json' },
       });
       responseJsonStr = response.text || '';
     } catch (genErr: any) {
@@ -86,7 +125,7 @@ export default async function handler(req: Request, res: Response) {
         const retryResponse = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: retryContents,
-          config: { systemInstruction },
+          config: { systemInstruction, responseMimeType: 'application/json' },
         });
         const retryStr = retryResponse.text || '';
         let cleanRetryStr = retryStr.trim();
@@ -104,7 +143,12 @@ export default async function handler(req: Request, res: Response) {
       }
     }
 
-    return res.status(200).json(parsedJson);
+    try {
+      return res.status(200).json(normalizeParsedResponse(parsedJson, now));
+    } catch (validationError) {
+      console.error('Invalid Gemini response', validationError);
+      return res.status(422).json({ error: 'Gemini returned an invalid task object' });
+    }
 
   } catch (error) {
     console.error("Error processing request", error);

@@ -32,8 +32,14 @@ export default function ParsedNoteConfirmation({
   const [daysOfWeek, setDaysOfWeek] = useState<string[]>(parsedData.daysOfWeek || []);
   const [priority, setPriority] = useState<NotePriority>((parsedData.priority as NotePriority) || "Medium");
 
-  const toDatetimeLocal = (iso?: string | null) => 
-    iso ? new Date(iso).toISOString().slice(0,16) : '';
+  const toDatetimeLocal = (iso?: string | null) => {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '';
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+      + `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
 
   const [dueDateStr, setDueDateStr] = useState(toDatetimeLocal(parsedData.dueDate));
   const [reminderStr, setReminderStr] = useState(toDatetimeLocal(parsedData.dueDate));

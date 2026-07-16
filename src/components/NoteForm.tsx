@@ -241,6 +241,11 @@ export default function NoteForm({ onClose, projectId, note }: NoteFormProps) {
                 if (data.noteContent) setContent(prev => prev + (prev.trim() ? "\n\n" : "") + "[AI Extracted] " + data.noteContent);
                 if (data.priority && ["Low", "Medium", "High"].includes(data.priority)) setPriority(data.priority as NotePriority);
                 if (data.status && ["Pending", "Done"].includes(data.status)) setStatus(data.status as NoteStatus);
+                if (data.dueDate && !Number.isNaN(new Date(data.dueDate).getTime())) {
+                  const parsedDueDate = new Date(data.dueDate);
+                  setDueDateStr(format(parsedDueDate, "yyyy-MM-dd'T'HH:mm"));
+                  setReminderStr(format(parsedDueDate, "yyyy-MM-dd'T'HH:mm"));
+                }
                 
                 if (data.timesPerDay !== undefined || (data.daysOfWeek && data.daysOfWeek.length > 0)) {
                     if (data.timesPerDay > 1 || (data.daysOfWeek && data.daysOfWeek.length > 0)) {
