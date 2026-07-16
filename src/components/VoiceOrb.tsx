@@ -1,4 +1,5 @@
-import React, { useRef, useEffect } from "react";
+import { useEffect, useRef } from "react";
+import * as THREE from "three";
 import { useTheme } from "../themes/ThemeContext";
 
 export interface VoiceOrbProps {
@@ -7,228 +8,238 @@ export interface VoiceOrbProps {
   analyser?: AnalyserNode | null;
 }
 
+const ORB_SIZE = 72;
+const FALLBACK_COLORS: [string, string, string, string] = [
+  "#c084fc",
+  "#8b2fe8",
+  "#0cb8e8",
+  "#ff375f",
+];
+
+const vertexShader = `
+  uniform float u_time;
+  uniform float u_amplitude;
+  uniform float u_state;
+
+  varying vec3 v_normal;
+  varying vec3 v_position;
+  varying vec3 v_view_position;
+
+  void main() {
+    float idleWave = sin(position.y * 4.0 + u_time) * 0.018;
+    float recordWave = sin(position.x * 7.0 + u_time * 4.0)
+      * sin(position.y * 6.0 - u_time * 3.0)
+      * (0.025 + u_amplitude * 0.11);
+    float parseWave = sin(position.y * 9.0 + u_time * 3.0) * 0.035;
+
+    float displacement = idleWave;
+    if (u_state > 0.5 && u_state < 1.5) displacement = recordWave;
+    if (u_state >= 1.5) displacement = parseWave;
+
+    vec3 displaced = position + normal * displacement;
+    vec4 viewPosition = modelViewMatrix * vec4(displaced, 1.0);
+    v_normal = normalize(normalMatrix * normal);
+    v_position = displaced;
+    v_view_position = -viewPosition.xyz;
+    gl_Position = projectionMatrix * viewPosition;
+  }
+`;
+
+const fragmentShader = `
+  uniform float u_time;
+  uniform float u_amplitude;
+  uniform vec3 u_weights;
+  uniform vec3 u_color1;
+  uniform vec3 u_color2;
+  uniform vec3 u_color3;
+  uniform vec3 u_color4;
+
+  varying vec3 v_normal;
+  varying vec3 v_position;
+  varying vec3 v_view_position;
+
+  vec3 fourColorGradient(float a, float b, float c) {
+    vec3 firstPair = mix(u_color1, u_color2, a);
+    vec3 secondPair = mix(u_color3, u_color4, b);
+    return mix(firstPair, secondPair, c);
+  }
+
+  void main() {
+    // These bands are evaluated directly on the unit-sphere surface. Unlike the
+    // previous off-surface blob centres, every fragment is guaranteed a color.
+    float idleA = sin(v_position.x * 2.8 + u_time * 0.45) * 0.5 + 0.5;
+    float idleB = sin(v_position.y * 3.2 - u_time * 0.35 + 1.4) * 0.5 + 0.5;
+    float idleC = sin(v_position.z * 3.6 + u_time * 0.30 + 2.8) * 0.5 + 0.5;
+    vec3 idleColor = fourColorGradient(idleA, idleB, idleC);
+
+    float speed = 1.2 + u_amplitude * 3.0;
+    float recordA = sin(v_position.x * 5.5 + u_time * speed) * 0.5 + 0.5;
+    float recordB = sin(v_position.y * 5.0 - u_time * speed * 0.8) * 0.5 + 0.5;
+    float recordC = sin((v_position.x + v_position.z) * 4.0 + u_time) * 0.5 + 0.5;
+    vec3 recordColor = fourColorGradient(recordA, recordB, recordC);
+    recordColor *= 0.95 + u_amplitude * 0.45;
+
+    float bandA = sin(v_position.y * 8.0 + u_time * 2.2) * 0.5 + 0.5;
+    float bandB = sin((v_position.x - v_position.z) * 5.0 - u_time * 1.6) * 0.5 + 0.5;
+    vec3 parseColor = fourColorGradient(bandA, bandB, bandA * 0.6 + bandB * 0.4);
+
+    vec3 color = idleColor * u_weights.x
+      + recordColor * u_weights.y
+      + parseColor * u_weights.z;
+
+    vec3 normal = normalize(v_normal);
+    vec3 viewDirection = normalize(v_view_position);
+    float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 2.4);
+    vec3 lightDirection = normalize(vec3(-0.45, 0.75, 1.0));
+    vec3 halfDirection = normalize(lightDirection + viewDirection);
+    float specular = pow(max(dot(normal, halfDirection), 0.0), 56.0);
+
+    color = mix(color, vec3(1.0), fresnel * 0.24);
+    color += vec3(specular * 0.72);
+    color = pow(max(color, vec3(0.0)), vec3(0.9));
+    gl_FragColor = vec4(color, 0.92 + fresnel * 0.08);
+  }
+`;
+
 export default function VoiceOrb({ state, onClick, analyser }: VoiceOrbProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { orbColors } = useTheme();
-  const safeColors = orbColors?.length === 4 ? orbColors : ['#440154','#31688e','#35b779','#fde725'];
-
-  const reqIdRef = useRef<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const materialRef = useRef<THREE.ShaderMaterial | null>(null);
   const stateRef = useRef(state);
-  useEffect(() => { stateRef.current = state; }, [state]);
-  
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
-  const amplitudeRef = useRef<number>(0);
+  const analyserRef = useRef<AnalyserNode | null>(analyser ?? null);
+  const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const { orbColors } = useTheme();
 
-  // Parse CSS var back to rgba (simplified for hex)
-  const hexToRgba = (hex: string, alpha: number) => {
-    hex = hex.replace('#', '');
-    if (hex.length === 3) hex = hex.split('').map(c => c+c).join('');
-    const r = parseInt(hex.substring(0,2), 16) || 0;
-    const g = parseInt(hex.substring(2,4), 16) || 0;
-    const b = parseInt(hex.substring(4,6), 16) || 0;
-    return `rgba(${r},${g},${b},${alpha})`;
-  };
+  const colors = orbColors?.length === 4 ? orbColors : FALLBACK_COLORS;
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let vt = { idle: 0, record: 0, parse: 0 };
-    let baseScale = 1.0;
-    
-    function glass(cx: number, cy: number, r: number) {
-      if (!ctx) return;
-      const rim = ctx.createRadialGradient(cx, cy, r * 0.65, cx, cy, r);
-      rim.addColorStop(0, 'rgba(255,255,255,0)');
-      rim.addColorStop(1, 'rgba(255,255,255,0.18)');
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = rim; ctx.fill();
-      
-      const spec = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.28, 0, cx - r * 0.28, cy - r * 0.28, r * 0.45);
-      spec.addColorStop(0, 'rgba(255,255,255,0.52)');
-      spec.addColorStop(0.35, 'rgba(255,255,255,0.18)');
-      spec.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = spec; ctx.fill();
-
-      const bot = ctx.createRadialGradient(cx + r * 0.15, cy + r * 0.28, 0, cx + r * 0.15, cy + r * 0.28, r * 0.55);
-      bot.addColorStop(0, 'rgba(0,0,0,0.28)');
-      bot.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = bot; ctx.fill();
-    }
-
-    function drawIdle(cx: number, cy: number, r: number, t: number) {
-      if (!ctx) return;
-      const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      bg.addColorStop(0, hexToRgba(safeColors[1], 0.35));
-      bg.addColorStop(1, 'rgba(0,0,0,0.92)');
-      ctx.fillStyle = bg; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-      
-      const blobs = [
-        { a: t * 0.35, ob: r * 0.40, sz: r * 0.58, col: safeColors[0] },
-        { a: t * 0.35 + 2.09, ob: r * 0.36, sz: r * 0.52, col: safeColors[1] },
-        { a: t * 0.35 + 4.19, ob: r * 0.32, sz: r * 0.46, col: safeColors[2] }
-      ];
-      blobs.forEach(b => {
-        const x = cx + Math.cos(b.a) * b.ob;
-        const y = cy + Math.sin(b.a) * b.ob * 0.68;
-        const g = ctx.createRadialGradient(x, y, 0, x, y, b.sz);
-        g.addColorStop(0, hexToRgba(b.col, 0.72));
-        g.addColorStop(1, hexToRgba(b.col, 0));
-        ctx.beginPath(); ctx.arc(x, y, b.sz, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
-      });
-    }
-
-    function drawRecord(cx: number, cy: number, r: number, t: number, amp: number) {
-      if (!ctx) return;
-      ctx.fillStyle = 'rgba(0,0,0,0.82)'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-      const orbitR = r * (0.05 + amp * 0.4);
-      const blobs = [
-        { a: t * 0.18, sz: r * (0.4 + amp * 0.3), col: safeColors[0] },
-        { a: t * 0.18 + 1.57, sz: r * (0.35 + amp * 0.3), col: safeColors[1] },
-        { a: t * 0.18 + 3.14, sz: r * (0.4 + amp * 0.25), col: safeColors[2] },
-        { a: t * 0.18 + 4.71, sz: r * (0.3 + amp * 0.35), col: safeColors[3] }
-      ];
-      blobs.forEach(b => {
-        const x = cx + Math.cos(b.a) * orbitR;
-        const y = cy + Math.sin(b.a) * orbitR;
-        const g = ctx.createRadialGradient(x, y, 0, x, y, b.sz);
-        g.addColorStop(0, hexToRgba(b.col, 0.78 + amp * 0.2));
-        g.addColorStop(1, hexToRgba(b.col, 0));
-        ctx.beginPath(); ctx.arc(x, y, b.sz, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
-      });
-      if (amp > 0.8) {
-        const burst = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.8);
-        burst.addColorStop(0, hexToRgba(safeColors[3], (amp - 0.8) * 0.2));
-        burst.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = burst; ctx.fill();
-      }
-    }
-
-    function drawParse(cx: number, cy: number, r: number, t: number) {
-      if (!ctx) return;
-      ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-      
-      const pulse = Math.sin(t * 4) * 0.15 + 0.85; // Breathes more prominently
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * pulse);
-      g.addColorStop(0, hexToRgba(safeColors[0], 0.7));
-      g.addColorStop(0.6, hexToRgba(safeColors[1], 0.4));
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
-
-      // Tumble in a loading circle
-      for (let i = 0; i < 3; i++) {
-        ctx.save();
-        ctx.translate(cx, cy);
-        const speed = 2 + i * 0.5;
-        ctx.rotate(t * speed + (i * Math.PI * 2) / 3);
-        const wobble = Math.sin(t * 2 + i) * 10;
-        const dotR = r * 0.2 + Math.sin(t * 5 + i) * 5;
-        
-        ctx.beginPath();
-        ctx.arc(r * 0.5 + wobble, 0, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = hexToRgba(safeColors[i % safeColors.length], 0.8);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-
-    function renderV() {
-      if (!canvas || !ctx) return;
-      
-      let targetAmplitude = 0;
-      if (stateRef.current === "recording" && analyserRef.current && dataArrayRef.current) {
-        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-        let sum = 0;
-        const limit = Math.min(20, dataArrayRef.current.length);
-        for (let i = 0; i < limit; i++) sum += dataArrayRef.current[i];
-        targetAmplitude = (sum / limit) / 255.0;
-        targetAmplitude = Math.min(targetAmplitude * 3.0, 1.0);
-      } else if (stateRef.current === "recording") {
-        // Fallback fake amplitude if mic isn't hooked up correctly
-        const t = vt.record;
-        targetAmplitude = Math.max(0, Math.min(1,
-          (Math.sin(t*7.3)*0.38+Math.sin(t*4.9)*0.28+Math.sin(t*13.1)*0.2+Math.sin(t*19.7)*0.14)*0.5+0.58
-        ));
-      }
-      amplitudeRef.current += (targetAmplitude - amplitudeRef.current) * 0.25;
-      
-      let targetScale = 1.0;
-      if (stateRef.current === "recording") {
-        targetScale = 1.0 + amplitudeRef.current * 0.15;
-      } else if (stateRef.current === "parsing") {
-        targetScale = Math.sin(Date.now() * 0.003) * 0.05 + 1.02;
-      }
-      
-      baseScale += (targetScale - baseScale) * 0.2;
-      vt.idle += 0.007;
-      vt.record += 0.018;
-      vt.parse += 0.011;
-
-      const w = canvas.width;
-      const h = canvas.height;
-      const cx = w / 2;
-      const cy = h / 2;
-      const maxR = w / 2 - 2;
-      const r = maxR * baseScale;
-
-      ctx.clearRect(0, 0, w, h);
-      ctx.save();
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
-      
-      if (stateRef.current === "idle") {
-        drawIdle(cx, cy, r, vt.idle);
-      } else if (stateRef.current === "recording") {
-        drawRecord(cx, cy, r, vt.record, amplitudeRef.current);
-      } else if (stateRef.current === "parsing") {
-        drawParse(cx, cy, r, vt.parse);
-      }
-      
-      glass(cx, cy, r);
-      ctx.restore();
-      
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
-      ctx.lineWidth = 1; ctx.stroke();
-
-      reqIdRef.current = requestAnimationFrame(renderV);
-    }
-    
-    renderV();
-
-    return () => {
-      cancelAnimationFrame(reqIdRef.current);
-    };
-  }, [safeColors]);
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
-    if (analyser) {
-      analyserRef.current = analyser;
-      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
-    } else {
-      analyserRef.current = null;
-      dataArrayRef.current = null;
-    }
+    analyserRef.current = analyser ?? null;
+    dataArrayRef.current = analyser
+      ? new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount))
+      : null;
   }, [analyser]);
 
+  useEffect(() => {
+    const material = materialRef.current;
+    if (!material) return;
+
+    material.uniforms.u_color1.value.set(colors[0]);
+    material.uniforms.u_color2.value.set(colors[1]);
+    material.uniforms.u_color3.value.set(colors[2]);
+    material.uniforms.u_color4.value.set(colors[3]);
+  }, [colors]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 10);
+    camera.position.z = 3.05;
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(ORB_SIZE, ORB_SIZE, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    container.appendChild(renderer.domElement);
+
+    const geometry = new THREE.SphereGeometry(1, 64, 64);
+    const material = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      transparent: true,
+      side: THREE.FrontSide,
+      uniforms: {
+        u_time: { value: 0 },
+        u_amplitude: { value: 0 },
+        u_state: { value: 0 },
+        u_weights: { value: new THREE.Vector3(1, 0, 0) },
+        // Initialize with context colors so the first rendered frame is never black.
+        u_color1: { value: new THREE.Color(colors[0]) },
+        u_color2: { value: new THREE.Color(colors[1]) },
+        u_color3: { value: new THREE.Color(colors[2]) },
+        u_color4: { value: new THREE.Color(colors[3]) },
+      },
+    });
+    materialRef.current = material;
+
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    const targetWeights = new THREE.Vector3(1, 0, 0);
+    const clock = new THREE.Clock();
+    let animationFrame = 0;
+
+    const render = () => {
+      const delta = Math.min(clock.getDelta(), 0.05);
+      const activeState = stateRef.current;
+      const stateValue = activeState === "idle" ? 0 : activeState === "recording" ? 1 : 2;
+      targetWeights.set(stateValue === 0 ? 1 : 0, stateValue === 1 ? 1 : 0, stateValue === 2 ? 1 : 0);
+      material.uniforms.u_weights.value.lerp(targetWeights, 1 - Math.pow(0.001, delta));
+      material.uniforms.u_state.value = stateValue;
+
+      let amplitude = 0;
+      const activeAnalyser = analyserRef.current;
+      const frequencyData = dataArrayRef.current;
+      if (activeState === "recording" && activeAnalyser && frequencyData) {
+        activeAnalyser.getByteFrequencyData(frequencyData);
+        const sampleCount = Math.min(24, frequencyData.length);
+        let total = 0;
+        for (let i = 0; i < sampleCount; i += 1) total += frequencyData[i];
+        amplitude = Math.min((total / sampleCount / 255) * 3, 1);
+      }
+      material.uniforms.u_amplitude.value = THREE.MathUtils.lerp(
+        material.uniforms.u_amplitude.value,
+        amplitude,
+        1 - Math.pow(0.01, delta),
+      );
+      material.uniforms.u_time.value += delta;
+
+      mesh.rotation.y += delta * (activeState === "idle" ? 0.22 : 0.08);
+      const pulse = activeState === "parsing"
+        ? 1 + Math.sin(material.uniforms.u_time.value * 3) * 0.035
+        : 1 + material.uniforms.u_amplitude.value * 0.1;
+      mesh.scale.setScalar(THREE.MathUtils.lerp(mesh.scale.x, pulse, 0.12));
+
+      renderer.render(scene, camera);
+      animationFrame = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      materialRef.current = null;
+      geometry.dispose();
+      material.dispose();
+      renderer.dispose();
+      renderer.domElement.remove();
+    };
+    // The scene is intentionally initialized once; refs drive state and color updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <div 
+    <button
+      type="button"
+      aria-label={state === "recording" ? "Stop voice recording" : "Start voice recording"}
       className="cursor-pointer shadow-xl transition-transform duration-300 hover:scale-105 active:scale-95 orb-ring"
       onClick={onClick}
-      onTouchStart={onClick}
       style={{
-        width: 72,
-        height: 72,
+        width: ORB_SIZE,
+        height: ORB_SIZE,
         borderRadius: "50%",
         transform: "translateZ(0)",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center"
+        justifyContent: "center",
       }}
     >
-      <canvas ref={canvasRef} width={72} height={72} style={{ borderRadius: "50%", display: "block" }} />
-    </div>
+      <div ref={containerRef} style={{ width: ORB_SIZE, height: ORB_SIZE, borderRadius: "50%", overflow: "hidden" }} />
+    </button>
   );
 }
