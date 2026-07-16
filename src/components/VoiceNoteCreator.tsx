@@ -34,6 +34,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [transcriptionSupported, setTranscriptionSupported] = useState(true);
+  const [livePreviewError, setLivePreviewError] = useState<string | null>(null);
   const [orbStyle, setOrbStyle] = useState<OrbStyle>("2d");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -46,7 +47,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const latestTranscriptRef = useRef('');
   const shouldRestartRecognitionRef = useRef(false);
   const recognitionRestartTimerRef = useRef<number | null>(null);
-  const startRecognitionRef = useRef<() => void>(() => {});
+  const startRecognitionRef = useRef<(audioTrack?: MediaStreamTrack) => void>(() => {});
   const stopRecognitionRef = useRef<() => void>(() => {});
 
   const [geminiKey, setGeminiKey] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
     let recognitionActive = false;
     let recognitionStarting = false;
+    let recognitionAudioTrack: MediaStreamTrack | null = null;
 
     const clearRecognitionRestart = () => {
       if (recognitionRestartTimerRef.current !== null) {
@@ -79,9 +81,23 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       if (!shouldRestartRecognitionRef.current || recognitionActive || recognitionStarting) return;
       try {
         recognitionStarting = true;
-        recognition.start();
+        if (recognitionAudioTrack) recognition.start(recognitionAudioTrack);
+        else recognition.start();
       } catch (error) {
         recognitionStarting = false;
+        if (recognitionAudioTrack && error instanceof TypeError) {
+          // Safari currently exposes only start(). Keep its previously working
+          // path while Chromium uses the shared-track overload.
+          recognitionAudioTrack = null;
+          try {
+            recognitionStarting = true;
+            recognition.start();
+            return;
+          } catch (fallbackError) {
+            recognitionStarting = false;
+            console.error("Failed to start SpeechRecognition fallback:", fallbackError);
+          }
+        }
         console.error("Failed to start SpeechRecognition:", error);
         if (shouldRestartRecognitionRef.current) scheduleRecognitionStart(300);
       }
@@ -97,17 +113,22 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
     // The first start must run in the original click task. Restarts use the
     // delayed scheduler only after Chrome has fully ended the previous session.
-    startRecognitionRef.current = startRecognitionNow;
+    startRecognitionRef.current = (audioTrack?: MediaStreamTrack) => {
+      recognitionAudioTrack = audioTrack ?? null;
+      startRecognitionNow();
+    };
     stopRecognitionRef.current = () => {
       shouldRestartRecognitionRef.current = false;
       clearRecognitionRestart();
       if (recognitionActive || recognitionStarting) recognition.abort();
       recognitionStarting = false;
+      recognitionAudioTrack = null;
     };
 
     recognition.onstart = () => {
       recognitionStarting = false;
       recognitionActive = true;
+      setLivePreviewError(null);
     };
 
     recognition.onaudiostart = () => console.info("SpeechRecognition audio capture started");
@@ -131,10 +152,10 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     recognition.onerror = (event: any) => {
       recognitionStarting = false;
       console.error("SpeechRecognition error:", event.error);
+      setLivePreviewError(event.error || "unknown error");
       if (["not-allowed", "service-not-allowed", "audio-capture", "network"].includes(event.error)) {
         shouldRestartRecognitionRef.current = false;
         clearRecognitionRestart();
-        setTranscriptionSupported(false);
       }
     };
 
@@ -222,16 +243,9 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     setErrorType("none");
     setErrorMessage("");
     setInterimText("");
+    setLivePreviewError(null);
     latestTranscriptRef.current = '';
     finalTranscriptRef.current = '';
-
-    // Chrome's recognizer is intentionally started before any await and before
-    // MediaRecorder claims the microphone. This preserves the click activation
-    // and avoids the Windows capture-order race.
-    if (transcriptionSupported && recognitionRef.current) {
-      shouldRestartRecognitionRef.current = true;
-      startRecognitionRef.current();
-    }
 
     const key = await checkGeminiKey();
     if (!key) {
@@ -254,6 +268,16 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
         return;
       }
       audioStreamRef.current = stream;
+
+      if (transcriptionSupported && recognitionRef.current) {
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack) {
+          // Chromium can consume the existing MediaStreamTrack. Sharing it with
+          // MediaRecorder avoids a second Windows microphone capture session.
+          shouldRestartRecognitionRef.current = true;
+          startRecognitionRef.current(audioTrack);
+        }
+      }
 
       let options: any = { audioBitsPerSecond: 32000 };
       if (typeof MediaRecorder.isTypeSupported === 'function') {
@@ -564,9 +588,9 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
             />
           </div>
           
-          {!transcriptionSupported && (
+          {(!transcriptionSupported || livePreviewError) && (
             <div className="mt-4 text-xs font-medium text-[var(--theme-text-muted)] text-center px-4">
-              Live preview unavailable in this browser — your note will still be transcribed after recording.
+              Live preview unavailable{livePreviewError ? ` (${livePreviewError})` : " in this browser"} — your note will still be transcribed after recording.
             </div>
           )}
           
