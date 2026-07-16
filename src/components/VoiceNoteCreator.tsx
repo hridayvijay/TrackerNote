@@ -48,7 +48,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
   const shouldRestartRecognitionRef = useRef(false);
   const recognitionRestartTimerRef = useRef<number | null>(null);
   const startRecognitionRef = useRef<(audioTrack?: MediaStreamTrack) => void>(() => {});
-  const stopRecognitionRef = useRef<() => void>(() => {});
+  const stopRecognitionRef = useRef<(immediate?: boolean) => void>(() => {});
 
   const [geminiKey, setGeminiKey] = useState<string | null>(null);
   const geminiKeyRef = useRef<string | null>(null);
@@ -61,13 +61,16 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    // Phrase-sized sessions are more consistent across desktop and Android
+    // Chromium. onend restarts while recording, preserving a continuous UI.
+    recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
     let recognitionActive = false;
     let recognitionStarting = false;
     let recognitionAudioTrack: MediaStreamTrack | null = null;
+    let intentionalStop = false;
 
     const clearRecognitionRestart = () => {
       if (recognitionRestartTimerRef.current !== null) {
@@ -114,13 +117,18 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     // The first start must run in the original click task. Restarts use the
     // delayed scheduler only after Chrome has fully ended the previous session.
     startRecognitionRef.current = (audioTrack?: MediaStreamTrack) => {
+      intentionalStop = false;
       recognitionAudioTrack = audioTrack ?? null;
       startRecognitionNow();
     };
-    stopRecognitionRef.current = () => {
+    stopRecognitionRef.current = (immediate = false) => {
       shouldRestartRecognitionRef.current = false;
       clearRecognitionRestart();
-      if (recognitionActive || recognitionStarting) recognition.abort();
+      intentionalStop = true;
+      if (recognitionActive || recognitionStarting) {
+        if (immediate) recognition.abort();
+        else recognition.stop();
+      }
       recognitionStarting = false;
       recognitionAudioTrack = null;
     };
@@ -152,6 +160,11 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     recognition.onerror = (event: any) => {
       recognitionStarting = false;
       console.error("SpeechRecognition error:", event.error);
+      if (event.error === "aborted" && intentionalStop) return;
+      if (event.error === "no-speech") {
+        setLivePreviewError(null);
+        return;
+      }
       setLivePreviewError(event.error || "unknown error");
       if (["not-allowed", "service-not-allowed", "audio-capture", "network"].includes(event.error)) {
         shouldRestartRecognitionRef.current = false;
@@ -173,6 +186,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       stopTimer();
       shouldRestartRecognitionRef.current = false;
       clearRecognitionRestart();
+      intentionalStop = true;
       if (recognitionActive) recognition.abort();
       recognitionRef.current = null;
       startRecognitionRef.current = () => {};
@@ -249,7 +263,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
 
     const key = await checkGeminiKey();
     if (!key) {
-      stopRecognitionRef.current();
+      stopRecognitionRef.current(true);
       setErrorType("no-key");
       setErrorMessage("No Gemini key configured.");
       return;
@@ -262,7 +276,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (e) {
-        stopRecognitionRef.current();
+        stopRecognitionRef.current(true);
         setErrorType("permission");
         setErrorMessage("Microphone permission denied.");
         return;
@@ -363,7 +377,7 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     } catch (err: any) {
       console.error("Recording error:", err);
       shouldRestartRecognitionRef.current = false;
-      stopRecognitionRef.current();
+      stopRecognitionRef.current(true);
       audioStreamRef.current?.getTracks().forEach((track) => track.stop());
       if (audioContextRef.current?.state !== "closed") {
         audioContextRef.current?.close().catch(() => {});
@@ -384,8 +398,8 @@ export default function VoiceNoteCreator({ onParsed, existingStakeholders, onGoT
     setIsRecording(false);
     setIsParsing(true);
     stopTimer();
-    mediaRecorderRef.current?.stop();
     stopRecognitionRef.current();
+    mediaRecorderRef.current?.stop();
   };
 
   const processAudio = async (base64data: string, mimeType: string = 'audio/webm') => {
