@@ -426,7 +426,11 @@ function ThreeVoiceOrb({ state, onClick, analyser }: VoiceOrbProps) {
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(ORB_SIZE, ORB_SIZE, false);
+    // Keep the WebGL drawing buffer and the canvas's CSS box in sync. Passing
+    // false here left the DOM canvas at its 300x150 default, so the 72px orb
+    // wrapper exposed only the canvas's top-left corner.
+    renderer.setSize(ORB_SIZE, ORB_SIZE);
+    renderer.domElement.style.display = "block";
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
 
